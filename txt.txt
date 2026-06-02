@@ -1,0 +1,21 @@
+public/
+
+logo/
+logo.png
+Bovic Collections brand logo
+
+categories/
+sneakers.jpg
+wears.jpg
+slides.jpg
+bags.jpg
+heels.jpg
+beddings.jpg
+
+hero/
+hero-bg.jpg
+Hero section background image
+
+og/
+og-image.jpg
+Social preview / Open Graph image
