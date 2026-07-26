@@ -8,7 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Supabase not configured yet
     if (!supabase) {
       setLoading(false);
       return;

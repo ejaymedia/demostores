@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "../../supabase";
+import { useSite } from "../../context/SiteContext";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { siteSettings } = useSite();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +16,10 @@ const AdminLogin = () => {
   const handleLogin = async () => {
     if (!email || !password) {
       setError("Please fill in all fields.");
+      return;
+    }
+    if (!supabase) {
+      setError("Backend not configured yet. Check back soon.");
       return;
     }
     setLoading(true);
@@ -38,49 +44,58 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="bg-[#0F0F1A] min-h-screen flex items-center justify-center px-6">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
 
-      {/* Background glow */}
+      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-purple-700/10 blur-3xl" />
+        <div
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full blur-3xl opacity-10"
+          style={{ background: "var(--brand-1)" }}
+        />
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-sm">
 
-        {/* Logo */}
-        <div className="text-center mb-10">
+        {/* Logo + Brand */}
+        <div className="text-center mb-8">
           <img
-            src={`${import.meta.env.BASE_URL}logo/logo.png`}
-            alt="Bovic Collections"
+            src={siteSettings.logo_url}
+            alt={siteSettings.business_name}
             className="h-14 w-auto object-contain mx-auto mb-4"
             onError={(e) => { e.target.style.display = "none"; }}
           />
-          <h1 className="text-white text-2xl font-black mb-1">
-            Admin Portal
+          <h1
+            className="text-2xl font-black mb-1"
+            style={{ color: "var(--brand-1)" }}
+          >
+            {siteSettings.business_name}
           </h1>
-          <p className="text-gray-500 text-sm">
-            Bovic Collections — restricted access
+          <p className="text-gray-400 text-sm">
+            Admin Portal — Restricted Access
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#1A1A2E] border border-purple-900/20 rounded-3xl p-8">
+        <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
 
-          {/* Icon */}
-          <div className="w-12 h-12 rounded-2xl bg-purple-900/30 border border-purple-700/30 flex items-center justify-center mx-auto mb-8">
-            <Lock size={20} className="text-purple-400" />
+          {/* Lock icon */}
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-8"
+            style={{ background: "var(--brand-1)" }}
+          >
+            <Lock size={20} className="text-white" />
           </div>
 
           {/* Error */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium px-4 py-3 rounded-xl mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-medium px-4 py-3 rounded-xl mb-6">
               {error}
             </div>
           )}
 
           {/* Email */}
           <div className="mb-4">
-            <label className="text-gray-400 text-xs uppercase tracking-widest block mb-2">
+            <label className="text-gray-500 text-xs font-bold uppercase tracking-widest block mb-2">
               Email
             </label>
             <input
@@ -88,14 +103,14 @@ const AdminLogin = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="admin@boviccollections.com"
-              className="w-full bg-[#0F0F1A] border border-purple-900/30 text-white text-sm placeholder-gray-600 px-4 py-3.5 rounded-xl outline-none focus:border-purple-500/60 transition-colors duration-200"
+              placeholder="admin@example.com"
+              className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm placeholder-gray-400 px-4 py-3.5 rounded-xl outline-none focus:border-gray-400 transition-colors duration-200"
             />
           </div>
 
           {/* Password */}
           <div className="mb-8">
-            <label className="text-gray-400 text-xs uppercase tracking-widest block mb-2">
+            <label className="text-gray-500 text-xs font-bold uppercase tracking-widest block mb-2">
               Password
             </label>
             <div className="relative">
@@ -105,11 +120,11 @@ const AdminLogin = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="••••••••"
-                className="w-full bg-[#0F0F1A] border border-purple-900/30 text-white text-sm placeholder-gray-600 px-4 py-3.5 rounded-xl outline-none focus:border-purple-500/60 transition-colors duration-200 pr-12"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm placeholder-gray-400 px-4 py-3.5 rounded-xl outline-none focus:border-gray-400 transition-colors duration-200 pr-12"
               />
               <button
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors duration-200"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors duration-200"
                 aria-label="Toggle password visibility"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -121,20 +136,22 @@ const AdminLogin = () => {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 text-sm tracking-wide"
+            className="w-full text-white font-bold py-4 rounded-xl transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 text-sm tracking-wide"
+            style={{ background: "var(--brand-1)" }}
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-gray-600 text-xs mt-6">
+        <p className="text-center text-gray-400 text-xs mt-6">
           Built with ❤️ by{" "}
           <a
             href="https://elijah.is-a.dev"
             target="_blank"
             rel="noreferrer"
-            className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
+            className="font-semibold hover:text-gray-700 transition-colors duration-200"
+            style={{ color: "var(--brand-1)" }}
           >
             Ejay
           </a>

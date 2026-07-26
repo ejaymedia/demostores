@@ -1,44 +1,65 @@
 import { X } from "lucide-react";
-import { categories } from "../../data/categories";
 
-const genders = ["All", "Men", "Women", "Unisex"];
-const sortOptions = ["Newest", "A–Z", "Z–A", "Hot Deals"];
+const categories = [
+  { id: "all", label: "All" },
+  { id: "clothing", label: "Clothing" },
+  { id: "shoes", label: "Shoes" },
+  { id: "bags", label: "Bags" },
+  { id: "accessories", label: "Accessories" },
+];
 
-const FilterSidebar = ({ filters, onChange, onClose, isMobile = false }) => {
-  const handleCategory = (id) => {
-    onChange({ ...filters, category: id });
-  };
+const sortOptions = [
+  { id: "newest", label: "Newest" },
+  { id: "price_asc", label: "Price: Low–High" },
+  { id: "price_desc", label: "Price: High–Low" },
+  { id: "onSale", label: "On Sale" },
+];
 
-  const handleGender = (gender) => {
-    onChange({ ...filters, gender });
-  };
+const showOnlyOptions = [
+  { id: "all", label: "All Products" },
+  { id: "hotDeal", label: "🔥 Hot Deals" },
+  { id: "newArrival", label: "🆕 New Arrivals" },
+  { id: "onSale", label: "🏷️ On Sale" },
+];
 
-  const handleSort = (sort) => {
-    onChange({ ...filters, sort });
-  };
-
+const FilterSidebar = ({
+  filters,
+  onChange,
+  onClose,
+  isMobile = false,
+  priceRange,
+  maxPrice,
+  onPriceChange,
+}) => {
   const handleReset = () => {
-    onChange({ category: "all", gender: "All", sort: "Newest" });
+    onChange({
+      category: "all",
+      sort: "newest",
+      showOnly: "all",
+    });
+    onPriceChange([0, maxPrice]);
   };
 
   return (
-    <div className="bg-[#1A1A2E] border border-purple-900/20 rounded-2xl p-6 sticky top-24">
+    <div className="bg-white rounded-2xl border border-gray-100 p-6">
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-white text-sm font-semibold uppercase tracking-widest">
+        <h3 className="text-gray-900 text-sm font-bold uppercase tracking-widest">
           Filters
         </h3>
         <div className="flex items-center gap-3">
           <button
             onClick={handleReset}
-            className="text-purple-400 hover:text-purple-300 text-xs font-medium transition-colors duration-200"
+            className="text-xs font-semibold transition-colors duration-200 hover:opacity-80"
+            style={{ color: "var(--brand-1)" }}
           >
             Reset
           </button>
           {isMobile && (
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors duration-200"
+              className="text-gray-400 hover:text-gray-700 transition-colors duration-200"
               aria-label="Close filters"
             >
               <X size={18} />
@@ -47,84 +68,116 @@ const FilterSidebar = ({ filters, onChange, onClose, isMobile = false }) => {
         </div>
       </div>
 
-      {/* Category Filter */}
+      {/* Category */}
       <div className="mb-6">
-        <p className="text-gray-500 text-xs uppercase tracking-widest mb-3">
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
           Category
         </p>
-        <div className="flex flex-col gap-1.5">
-          <button
-            onClick={() => handleCategory("all")}
-            className={`text-left text-sm px-3 py-2 rounded-lg transition-all duration-200 ${
-              filters.category === "all"
-                ? "bg-purple-700/30 text-white font-medium border border-purple-500/40"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            All Categories
-          </button>
+        <div className="flex flex-col gap-1">
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => handleCategory(cat.id)}
-              className={`text-left text-sm px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+              onClick={() => onChange({ ...filters, category: cat.id })}
+              className={`text-left text-sm px-3 py-2.5 rounded-xl transition-all duration-200 font-medium ${
                 filters.category === cat.id
-                  ? "bg-purple-700/30 text-white font-medium border border-purple-500/40"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "text-white"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
               }`}
+              style={
+                filters.category === cat.id
+                  ? { background: "var(--brand-1)" }
+                  : {}
+              }
             >
-              <span>{cat.icon}</span>
-              {cat.name}
+              {cat.label}
             </button>
           ))}
         </div>
       </div>
 
       {/* Divider */}
-      <div className="border-t border-purple-900/20 mb-6" />
+      <div className="border-t border-gray-100 mb-6" />
 
-      {/* Gender Filter */}
+      {/* Price Range */}
       <div className="mb-6">
-        <p className="text-gray-500 text-xs uppercase tracking-widest mb-3">
-          Gender
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
+          Price Range
         </p>
-        <div className="flex flex-wrap gap-2">
-          {genders.map((gender) => (
-            <button
-              key={gender}
-              onClick={() => handleGender(gender)}
-              className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all duration-200 ${
-                filters.gender === gender
-                  ? "bg-purple-700 text-white border-purple-600"
-                  : "bg-transparent text-gray-400 border-white/10 hover:border-purple-500/40 hover:text-white"
-              }`}
-            >
-              {gender}
-            </button>
-          ))}
+        <input
+          type="range"
+          min={0}
+          max={maxPrice}
+          step={500}
+          value={priceRange[1]}
+          onChange={(e) => onPriceChange([0, Number(e.target.value)])}
+          className="w-full accent-[var(--brand-1)] cursor-pointer"
+        />
+        <div className="flex justify-between mt-2">
+          <span className="text-xs text-gray-400">₦0</span>
+          <span
+            className="text-xs font-semibold"
+            style={{ color: "var(--brand-1)" }}
+          >
+            Up to ₦{priceRange[1].toLocaleString("en-NG")}
+          </span>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="border-t border-purple-900/20 mb-6" />
+      <div className="border-t border-gray-100 mb-6" />
 
-      {/* Sort */}
-      <div>
-        <p className="text-gray-500 text-xs uppercase tracking-widest mb-3">
+      {/* Sort By */}
+      <div className="mb-6">
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
           Sort By
         </p>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1">
           {sortOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => handleSort(option)}
-              className={`text-left text-sm px-3 py-2 rounded-lg transition-all duration-200 ${
-                filters.sort === option
-                  ? "bg-purple-700/30 text-white font-medium border border-purple-500/40"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              key={option.id}
+              onClick={() => onChange({ ...filters, sort: option.id })}
+              className={`text-left text-sm px-3 py-2.5 rounded-xl transition-all duration-200 font-medium ${
+                filters.sort === option.id
+                  ? "text-white"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
               }`}
+              style={
+                filters.sort === option.id
+                  ? { background: "var(--brand-1)" }
+                  : {}
+              }
             >
-              {option}
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-gray-100 mb-6" />
+
+      {/* Show Only */}
+      <div>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
+          Show Only
+        </p>
+        <div className="flex flex-col gap-1">
+          {showOnlyOptions.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => onChange({ ...filters, showOnly: option.id })}
+              className={`text-left text-sm px-3 py-2.5 rounded-xl transition-all duration-200 font-medium ${
+                filters.showOnly === option.id
+                  ? "text-white"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              style={
+                filters.showOnly === option.id
+                  ? { background: "var(--brand-1)" }
+                  : {}
+              }
+            >
+              {option.label}
             </button>
           ))}
         </div>

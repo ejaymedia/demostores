@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaInstagram, FaFacebookF, FaWhatsapp } from "react-icons/fa";
+import { useSite } from "../context/SiteContext";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
   const location = useLocation();
+  const { siteSettings } = useSite();
   const [pendingScroll, setPendingScroll] = useState(null);
 
   useEffect(() => {
@@ -23,6 +25,11 @@ const Footer = () => {
     }
   }, [location.pathname, pendingScroll]);
 
+  const goTo = (path) => {
+    navigate(path);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const scrollToSection = (sectionId) => {
     if (location.pathname !== "/") {
       setPendingScroll(sectionId);
@@ -33,102 +40,126 @@ const Footer = () => {
     }
   };
 
-  const goTo = (path) => {
-    navigate(path);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const quickLinks = [
-    { label: "Home", type: "route", to: "/" },
-    { label: "Shop", type: "route", to: "/shop" },
-    { label: "About", type: "scroll", section: "about" },
-    { label: "Contact", type: "scroll", section: "contact" },
+  const shopLinks = [
+    { label: "Men", path: "/shop/men", type: "route" },
+    { label: "Women", path: "/shop/women", type: "route" },
+    { label: "Kids", path: "/shop/kids", type: "route" },
+    { label: "New Arrivals", path: "/shop/men", type: "route" },
+    { label: "Sale", path: "/shop/men", type: "route" },
   ];
 
-  const categories = [
-    { label: "Sneakers", to: "/shop" },
-    { label: "Unisex Wears", to: "/shop" },
-    { label: "Slides", to: "/shop" },
-    { label: "Hand & Shoulder Bags", to: "/shop" },
-    { label: "High Heels", to: "/shop" },
-    { label: "Beddings", to: "/shop" },
+  const helpLinks = [
+    { label: "About Us", section: "features", type: "scroll" },
+    { label: "Contact Us", section: "contact", type: "scroll" },
+    { label: "WhatsApp Order", path: `https://wa.me/${siteSettings.whatsapp}`, type: "external" },
   ];
 
   return (
-    <footer className="bg-[#0A0A15] border-t border-purple-900/20">
-      {/* Main Footer */}
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+    <footer className="bg-gray-950 text-white">
 
-        {/* Brand Column */}
-        <div className="lg:col-span-1">
+      {/* Main Footer */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+
+        {/* Brand */}
+        <div className="sm:col-span-2 lg:col-span-1">
           <button
             onClick={() => goTo("/")}
             className="flex items-center gap-3 mb-4"
           >
             <img
-              src={`${import.meta.env.BASE_URL}logo/logo.png`}
-              alt="Bovic Collections"
+              src={siteSettings.logo_url}
+              alt={siteSettings.business_name}
               className="h-10 w-auto object-contain"
               onError={(e) => { e.target.style.display = "none"; }}
             />
-            <span className="font-bold text-lg bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Bovic Collections
+            <span
+              className="font-black text-lg"
+              style={{ color: "var(--brand-1)" }}
+            >
+              {siteSettings.business_name}
             </span>
           </button>
           <p className="text-gray-400 text-sm leading-relaxed mb-6">
-            Premium fashion for every lifestyle. Sneakers, bags, heels, wears,
-            slides and beddings — delivered across Nigeria.
+            {siteSettings.tagline}. Delivered across Nigeria.
           </p>
           {/* Socials */}
-          <div className="flex items-center gap-4">
-            <a  
-              href="https://instagram.com/boviccollection"
+          <div className="flex items-center gap-3">
+            <a
+              href="https://instagram.com"
               target="_blank"
               rel="noreferrer"
-              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-purple-500 transition-all duration-200"
               aria-label="Instagram"
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-all duration-200"
             >
-              <FaInstagram size={16} />
+              <FaInstagram size={15} />
             </a>
             <a
-              href="https://facebook.com/ajibadeboluwa"
+              href="https://facebook.com"
               target="_blank"
               rel="noreferrer"
-              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-purple-500 transition-all duration-200"
               aria-label="Facebook"
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-all duration-200"
             >
-              <FaFacebookF size={16} />
+              <FaFacebookF size={15} />
             </a>
             <a
-              href="https://wa.me/2347064191600"
+              href={`https://wa.me/${siteSettings.whatsapp}`}
               target="_blank"
               rel="noreferrer"
-              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-purple-500 transition-all duration-200"
               aria-label="WhatsApp"
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-all duration-200"
             >
-              <FaWhatsapp size={16} />
+              <FaWhatsapp size={15} />
             </a>
           </div>
         </div>
 
-        {/* Quick Links */}
+        {/* Shop Links */}
         <div>
-          <h4 className="text-white text-sm font-semibold uppercase tracking-widest mb-5">
-            Quick Links
+          <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">
+            Shop
           </h4>
           <ul className="flex flex-col gap-3">
-            {quickLinks.map((link) => (
+            {shopLinks.map((link) => (
               <li key={link.label}>
-                {link.type === "route" ? (
+                <button
+                  onClick={() => goTo(link.path)}
+                  className="text-gray-400 text-sm hover:text-white transition-colors duration-200 text-left"
+                >
+                  {link.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Help Links */}
+        <div>
+          <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">
+            Help
+          </h4>
+          <ul className="flex flex-col gap-3">
+            {helpLinks.map((link) => (
+              <li key={link.label}>
+                {link.type === "scroll" ? (
                   <button
-                    onClick={() => goTo(link.to)}
+                    onClick={() => scrollToSection(link.section)}
                     className="text-gray-400 text-sm hover:text-white transition-colors duration-200 text-left"
                   >
                     {link.label}
                   </button>
+                ) : link.type === "external" ? (
+                  <a
+                    href={link.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-gray-400 text-sm hover:text-white transition-colors duration-200"
+                  >
+                    {link.label}
+                  </a>
                 ) : (
                   <button
-                    onClick={() => scrollToSection(link.section)}
+                    onClick={() => goTo(link.path)}
                     className="text-gray-400 text-sm hover:text-white transition-colors duration-200 text-left"
                   >
                     {link.label}
@@ -139,29 +170,10 @@ const Footer = () => {
           </ul>
         </div>
 
-        {/* Categories */}
-        <div>
-          <h4 className="text-white text-sm font-semibold uppercase tracking-widest mb-5">
-            Categories
-          </h4>
-          <ul className="flex flex-col gap-3">
-            {categories.map((cat) => (
-              <li key={cat.label}>
-                <button
-                  onClick={() => goTo(cat.to)}
-                  className="text-gray-400 text-sm hover:text-white transition-colors duration-200 text-left"
-                >
-                  {cat.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
         {/* Contact */}
         <div>
-          <h4 className="text-white text-sm font-semibold uppercase tracking-widest mb-5">
-            Contact Us
+          <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">
+            Contact
           </h4>
           <ul className="flex flex-col gap-4">
             <li>
@@ -169,58 +181,66 @@ const Footer = () => {
                 WhatsApp / Call
               </p>
               <a
-                href="https://wa.me/2347064191600"
+                href={`https://wa.me/${siteSettings.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-white text-sm font-medium hover:text-purple-400 transition-colors duration-200"
+                className="text-white text-sm font-medium hover:text-gray-300 transition-colors duration-200"
               >
-                +234 706 419 1600
+                {siteSettings.phone}
               </a>
             </li>
-            <li>
-              <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                Alternative
-              </p>
-              <a
-                href="tel:08068457238"
-                className="text-white text-sm font-medium hover:text-purple-400 transition-colors duration-200"
-              >
-                080 6845 7238
-              </a>
-            </li>
-            <li>
-              <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                Instagram
-              </p>
-              <a
-                href="https://instagram.com/boviccollection"
-                target="_blank"
-                rel="noreferrer"
-                className="text-white text-sm font-medium hover:text-purple-400 transition-colors duration-200"
-              >
-                @boviccollection
-              </a>
-            </li>
+            {siteSettings.email && (
+              <li>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                  Email
+                </p>
+                <a
+                  href={`mailto:${siteSettings.email}`}
+                  className="text-white text-sm font-medium hover:text-gray-300 transition-colors duration-200"
+                >
+                  {siteSettings.email}
+                </a>
+              </li>
+            )}
+            {siteSettings.address && (
+              <li>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                  Address
+                </p>
+                <p className="text-white text-sm font-medium">
+                  {siteSettings.address}
+                </p>
+              </li>
+            )}
           </ul>
         </div>
       </div>
 
-      {/* Rainbow Divider */}
-      <div className="h-px bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400" />
+      {/* Brand colour divider */}
+      <div
+        className="h-px w-full"
+        style={{
+          background:
+            "linear-gradient(90deg, var(--brand-1), var(--brand-2))",
+        }}
+      />
 
       {/* Bottom Bar */}
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-5 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p className="text-gray-500 text-xs">
-          © {currentYear} Bovic Collections. All rights reserved.
+          © {currentYear} {siteSettings.business_name}. All rights reserved.
         </p>
-        <p className="text-gray-600 text-xs">Fashion · Style · Nigeria</p>
+        <p className="text-gray-600 text-xs">
+          Fashion · Style · Nigeria
+        </p>
         <p className="text-gray-600 text-xs">
           Built with ❤️ by{" "}
           <a
             href="https://elijah.is-a.dev"
             target="_blank"
             rel="noreferrer"
-            className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
+            className="hover:text-white transition-colors duration-200"
+            style={{ color: "var(--brand-1)" }}
           >
             Ejay
           </a>

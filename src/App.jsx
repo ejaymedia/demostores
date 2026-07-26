@@ -1,36 +1,37 @@
-import { Navbar, Footer } from "./components/index";
+import { Navbar, Footer, BackToTop } from "./components/index";
 import HeroSection from "./pages/Home/HeroSection";
-import CategoriesSection from "./pages/Home/CategoriesSection";
-import AboutSection from "./pages/Home/AboutSection";
-import FeaturesSection from "./pages/Home/FeaturesSection";
+import GenderSection from "./pages/Home/GenderSection";
+import NewArrivalsSection from "./pages/Home/NewArrivalsSection";
 import FeaturedProducts from "./pages/Home/FeaturedProducts";
+import FeaturesSection from "./pages/Home/FeaturesSection";
 import ContactSection from "./pages/Home/ContactSection";
 
 const App = () => {
   return (
-    <div className="bg-[#0F0F1A] min-h-screen">
+    <div className="bg-white min-h-screen">
       <Navbar />
       <main>
         <section id="hero">
           <HeroSection />
         </section>
-        <section id="categories">
-          <CategoriesSection />
+        <section id="gender">
+          <GenderSection />
         </section>
-        <section id="about">
-          <AboutSection />
+        <section id="new-arrivals">
+          <NewArrivalsSection />
+        </section>
+        <section id="featured">
+          <FeaturedProducts />
         </section>
         <section id="features">
           <FeaturesSection />
-        </section>
-        <section id="products">
-          <FeaturedProducts />
         </section>
         <section id="contact">
           <ContactSection />
         </section>
       </main>
       <Footer />
+      <BackToTop />
     </div>
   );
 };
