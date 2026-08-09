@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Truck, ShieldCheck, RefreshCw, Ruler } from "lucide-react";
+import { ArrowLeft, Truck, ShieldCheck, RefreshCw, Ruler, Play } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { motion } from "framer-motion";
 import {
@@ -11,7 +11,7 @@ import {
   BackToTop,
   SizeGuideModal,
 } from "../../components/index";
-import { products } from "../../data/products";
+import { getProductById, getProducts } from "../../supabaseService";
 import { useSite } from "../../context/SiteContext";
 
 const ProductDetail = () => {
@@ -19,14 +19,69 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { siteSettings } = useSite();
 
-  const product = products.find((p) => p.id === id);
-
+  const [product, setProduct] = useState(null);
+  const [related, setRelated] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
-  const formatPrice = (amount) => `₦${amount.toLocaleString("en-NG")}`;
+  const formatPrice = (amount) =>
+    `₦${Number(amount).toLocaleString("en-NG")}`;
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      setSelectedMediaIndex(0);
+      setSelectedSize("");
+      setSelectedColor("");
+
+      const data = await getProductById(id);
+      setProduct(data);
+
+      if (data) {
+        const relatedData = await getProducts({
+          gender: data.gender,
+          category: data.category,
+        });
+        setRelated(
+          relatedData.filter((p) => p.id !== id).slice(0, 4)
+        );
+      }
+
+      setLoading(false);
+    };
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="bg-white min-h-screen">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-24 pb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 animate-pulse">
+            <div>
+              <div className="aspect-square bg-gray-100 rounded-2xl mb-3" />
+              <div className="grid grid-cols-4 gap-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="aspect-square bg-gray-100 rounded-xl" />
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="h-4 bg-gray-100 rounded-full w-1/4" />
+              <div className="h-8 bg-gray-100 rounded-full w-3/4" />
+              <div className="h-20 bg-gray-100 rounded-2xl" />
+              <div className="h-4 bg-gray-100 rounded-full w-full" />
+              <div className="h-4 bg-gray-100 rounded-full w-2/3" />
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -60,19 +115,25 @@ const ProductDetail = () => {
         ((product.price - product.sale_price) / product.price) * 100
       )
     : null;
-  const moneySaved = hasDiscount ? product.price - product.sale_price : null;
+  const moneySaved = hasDiscount
+    ? product.price - product.sale_price
+    : null;
 
-  const related = products
-    .filter(
-      (p) =>
-        p.gender === product.gender &&
-        p.category === product.category &&
-        p.id !== product.id
-    )
-    .slice(0, 4);
+  // Media array — supports multiple images and videos with order
+  const mediaItems =
+    product.media && product.media.length > 0
+      ? [...product.media].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      : product.image_url
+      ? [{ url: product.image_url, type: "image", order: 0 }]
+      : [];
+
+  const currentMedia = mediaItems[selectedMediaIndex];
+  const isVideo = currentMedia?.type === "video";
 
   const handleWhatsApp = () => {
-    const sizeText = selectedSize ? `Size: ${selectedSize}` : "Size: Not selected";
+    const sizeText = selectedSize
+      ? `Size: ${selectedSize}`
+      : "Size: Not selected";
     const colorText = selectedColor
       ? `Colour: ${selectedColor}`
       : "Colour: Not selected";
@@ -94,14 +155,6 @@ const ProductDetail = () => {
     { icon: <RefreshCw size={15} />, label: "Easy Returns" },
   ];
 
-  // Use same image repeated for thumbnails until real images come from Supabase
-  const images = [
-    product.image_url,
-    product.image_url,
-    product.image_url,
-    product.image_url,
-  ];
-
   return (
     <div className="bg-white min-h-screen">
       <Navbar />
@@ -110,23 +163,20 @@ const ProductDetail = () => {
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-6 flex-wrap">
-          <Link
-            to="/"
-            className="hover:text-gray-700 transition-colors duration-200"
-          >
+          <Link to="/" className="hover:text-gray-700 transition-colors">
             Home
           </Link>
           <span>/</span>
           <Link
             to={`/shop/${product.gender}`}
-            className="hover:text-gray-700 transition-colors duration-200 capitalize"
+            className="hover:text-gray-700 transition-colors capitalize"
           >
             {product.gender}
           </Link>
           <span>/</span>
           <Link
             to={`/shop/${product.gender}`}
-            className="hover:text-gray-700 transition-colors duration-200 capitalize"
+            className="hover:text-gray-700 transition-colors capitalize"
           >
             {product.category}
           </Link>
@@ -146,30 +196,45 @@ const ProductDetail = () => {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-20">
 
-          {/* Image Gallery */}
+          {/* Media Gallery */}
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
           >
-            {/* Main Image */}
+            {/* Main Media */}
             <div className="relative rounded-2xl overflow-hidden bg-gray-50 aspect-square mb-3 border border-gray-100">
-              <img
-                src={images[selectedImage]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
+              {mediaItems.length === 0 ? (
+                <div className="w-full h-full flex items-center justify-center text-gray-300 text-6xl">
+                  🛍️
+                </div>
+              ) : isVideo ? (
+                <video
+                  src={currentMedia.url}
+                  controls
+                  className="w-full h-full object-cover"
+                  poster={
+                    mediaItems.find((m) => m.type === "image")?.url || ""
+                  }
+                />
+              ) : (
+                <img
+                  src={currentMedia?.url}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
+
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
                 {hasDiscount && <Badge type="onSale" />}
                 {product.is_new_arrival && !hasDiscount && (
                   <Badge type="newArrival" />
                 )}
-                {product.is_hot_deal && (
-                  <Badge type="hotDeal" />
-                )}
+                {product.is_hot_deal && <Badge type="hotDeal" />}
                 {!product.in_stock && <Badge type="inactive" />}
               </div>
+
               {/* Discount bubble */}
               {hasDiscount && (
                 <div
@@ -182,30 +247,42 @@ const ProductDetail = () => {
             </div>
 
             {/* Thumbnails */}
-            <div className="grid grid-cols-4 gap-2">
-              {images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={`rounded-xl overflow-hidden aspect-square border-2 transition-all duration-200 ${
-                    selectedImage === i
-                      ? "border-current opacity-100"
-                      : "border-transparent opacity-50 hover:opacity-80"
-                  }`}
-                  style={
-                    selectedImage === i
-                      ? { borderColor: "var(--brand-1)" }
-                      : {}
-                  }
-                >
-                  <img
-                    src={img}
-                    alt={`${product.name} view ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            {mediaItems.length > 1 && (
+              <div className="grid grid-cols-5 gap-2">
+                {mediaItems.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedMediaIndex(i)}
+                    className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all duration-200 ${
+                      selectedMediaIndex === i
+                        ? "border-current opacity-100"
+                        : "border-transparent opacity-50 hover:opacity-80"
+                    }`}
+                    style={
+                      selectedMediaIndex === i
+                        ? { borderColor: "var(--brand-1)" }
+                        : {}
+                    }
+                  >
+                    {item.type === "video" ? (
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <Play
+                          size={16}
+                          className="text-gray-500"
+                          fill="currentColor"
+                        />
+                      </div>
+                    ) : (
+                      <img
+                        src={item.url}
+                        alt={`${product.name} view ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {/* Product Details */}
@@ -221,8 +298,8 @@ const ProductDetail = () => {
               style={{ color: "var(--brand-1)" }}
             >
               {product.tag} ·{" "}
-              {product.gender.charAt(0).toUpperCase() +
-                product.gender.slice(1)}
+              {product.gender?.charAt(0).toUpperCase() +
+                product.gender?.slice(1)}
             </p>
 
             {/* Name */}
@@ -232,7 +309,7 @@ const ProductDetail = () => {
 
             {/* Price */}
             <div
-              className={`inline-flex flex-col gap-1 p-4 rounded-2xl mb-6 border ${
+              className={`flex flex-col gap-1 p-4 rounded-2xl mb-6 border ${
                 hasDiscount
                   ? "bg-red-50 border-red-100"
                   : "bg-gray-50 border-gray-100"
@@ -240,7 +317,7 @@ const ProductDetail = () => {
             >
               {hasDiscount ? (
                 <>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-gray-400 text-sm line-through">
                       {formatPrice(product.price)}
                     </span>
@@ -274,74 +351,78 @@ const ProductDetail = () => {
             </p>
 
             {/* Sizes */}
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-gray-900 text-sm font-bold">
-                  Select Size
-                </p>
-                <button
-                  onClick={() => setSizeGuideOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold transition-colors duration-200 hover:opacity-80"
-                  style={{ color: "var(--brand-1)" }}
-                >
-                  <Ruler size={13} />
-                  Size Guide
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-900 text-sm font-bold">
+                    Select Size
+                  </p>
                   <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
-                      selectedSize === size
-                        ? "text-white border-current"
-                        : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-900"
-                    }`}
-                    style={
-                      selectedSize === size
-                        ? {
-                            background: "var(--brand-1)",
-                            borderColor: "var(--brand-1)",
-                          }
-                        : {}
-                    }
+                    onClick={() => setSizeGuideOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold transition-colors duration-200 hover:opacity-80"
+                    style={{ color: "var(--brand-1)" }}
                   >
-                    {size}
+                    <Ruler size={13} />
+                    Size Guide
                   </button>
-                ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
+                        selectedSize === size
+                          ? "text-white border-current"
+                          : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-900"
+                      }`}
+                      style={
+                        selectedSize === size
+                          ? {
+                              background: "var(--brand-1)",
+                              borderColor: "var(--brand-1)",
+                            }
+                          : {}
+                      }
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Colors */}
-            <div className="mb-8">
-              <p className="text-gray-900 text-sm font-bold mb-3">
-                Select Colour
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
-                      selectedColor === color
-                        ? "text-white border-current"
-                        : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-900"
-                    }`}
-                    style={
-                      selectedColor === color
-                        ? {
-                            background: "var(--brand-1)",
-                            borderColor: "var(--brand-1)",
-                          }
-                        : {}
-                    }
-                  >
-                    {color}
-                  </button>
-                ))}
+            {product.colors && product.colors.length > 0 && (
+              <div className="mb-8">
+                <p className="text-gray-900 text-sm font-bold mb-3">
+                  Select Colour
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
+                        selectedColor === color
+                          ? "text-white border-current"
+                          : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-900"
+                      }`}
+                      style={
+                        selectedColor === color
+                          ? {
+                              background: "var(--brand-1)",
+                              borderColor: "var(--brand-1)",
+                            }
+                          : {}
+                      }
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* WhatsApp CTA */}
             <button

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { X, Plus, Minus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Plus, Minus, Upload, RefreshCw, Image } from "lucide-react";
+import { uploadFile } from "../../supabaseService";
 
 const genderOptions = ["men", "women", "kids"];
 const categoryOptions = ["clothing", "shoes", "bags", "accessories"];
@@ -41,13 +42,16 @@ const emptyForm = {
   is_new_arrival: false,
   is_hot_deal: false,
   in_stock: true,
-  image_url: `${import.meta.env.BASE_URL}genders/men.jpg`,
+  image_url: "",
 };
 
 const AddEditProductModal = ({ product, onSave, onClose }) => {
   const [form, setForm] = useState(emptyForm);
   const [colorInput, setColorInput] = useState("");
   const [errors, setErrors] = useState({});
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
+  const imageRef = useRef(null);
 
   useEffect(() => {
     if (product) {
@@ -56,8 +60,10 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
         price: product.price?.toString() || "",
         sale_price: product.sale_price?.toString() || "",
       });
+      setImagePreview(product.image_url || "");
     } else {
       setForm(emptyForm);
+      setImagePreview("");
     }
   }, [product]);
 
@@ -71,7 +77,6 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
       ...prev,
       gender: value,
       sizes: [],
-      image_url: `${import.meta.env.BASE_URL}genders/${value}.jpg`,
     }));
   };
 
@@ -124,6 +129,40 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
     }
   };
 
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setImagePreview(localUrl);
+
+    setUploadingImage(true);
+    setErrors((prev) => ({ ...prev, image_url: "" }));
+
+    try {
+      const path = `products/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+      const url = await uploadFile("product-images", path, file);
+
+      if (url) {
+        setForm((prev) => ({ ...prev, image_url: url }));
+        setImagePreview(url);
+      } else {
+        // Keep local preview but flag error
+        setForm((prev) => ({ ...prev, image_url: localUrl }));
+        setErrors((prev) => ({
+          ...prev,
+          image_url:
+            "Upload failed — image will only show locally until Supabase is connected.",
+        }));
+      }
+    } catch (err) {
+      console.error("Image upload error:", err);
+      setForm((prev) => ({ ...prev, image_url: localUrl }));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const validate = () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Product name is required.";
@@ -137,6 +176,8 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
         Number(form.sale_price) >= Number(form.price))
     )
       newErrors.sale_price = "Sale price must be less than original price.";
+    if (!form.image_url)
+      newErrors.image_url = "Please upload a product image.";
     if (form.sizes.length === 0)
       newErrors.sizes = "Select at least one size.";
     if (form.colors.length === 0)
@@ -163,6 +204,19 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
   const labelClass =
     "text-gray-500 text-xs font-bold uppercase tracking-widest block mb-2";
 
+  const discountPercent =
+    form.price &&
+    form.sale_price &&
+    !isNaN(Number(form.price)) &&
+    !isNaN(Number(form.sale_price)) &&
+    Number(form.sale_price) < Number(form.price)
+      ? Math.round(
+          ((Number(form.price) - Number(form.sale_price)) /
+            Number(form.price)) *
+            100
+        )
+      : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       {/* Overlay */}
@@ -172,16 +226,16 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+      <div className="relative bg-white rounded-3xl w-full max-w-xl max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <h2 className="text-gray-900 font-bold text-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+          <h2 className="text-gray-900 font-bold text-base">
             {product ? "Edit Product" : "Add New Product"}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 transition-colors duration-200"
+            className="text-gray-400 hover:text-gray-700 transition-colors duration-200 p-1"
             aria-label="Close"
           >
             <X size={20} />
@@ -189,9 +243,123 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
         </div>
 
         {/* Form */}
-        <div className="px-7 py-6 flex flex-col gap-5">
+        <div className="px-6 py-5 flex flex-col gap-5">
 
-          {/* Name */}
+          {/* ── IMAGE UPLOAD ─────────────────────────── */}
+          <div>
+            <label className={labelClass}>
+              Product Image *{" "}
+              {errors.image_url && (
+                <span className="text-red-500 normal-case font-normal ml-1">
+                  {errors.image_url}
+                </span>
+              )}
+            </label>
+
+            <div
+              onClick={() => !uploadingImage && imageRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer ${
+                errors.image_url
+                  ? "border-red-300 bg-red-50"
+                  : imagePreview
+                  ? "border-gray-200 bg-gray-50"
+                  : "border-gray-200 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+              }`}
+              style={{ minHeight: "180px" }}
+            >
+              {imagePreview ? (
+                /* Image Preview */
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Product preview"
+                    className="w-full h-48 object-cover"
+                  />
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2">
+                    <Upload size={20} className="text-white" />
+                    <span className="text-white text-xs font-semibold">
+                      Change Image
+                    </span>
+                  </div>
+                  {/* Uploading spinner */}
+                  {uploadingImage && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw
+                          size={20}
+                          className="animate-spin"
+                          style={{ color: "var(--brand-1)" }}
+                        />
+                        <span
+                          className="text-xs font-semibold"
+                          style={{ color: "var(--brand-1)" }}
+                        >
+                          Uploading...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  {uploadingImage ? (
+                    <>
+                      <RefreshCw
+                        size={24}
+                        className="animate-spin mb-3"
+                        style={{ color: "var(--brand-1)" }}
+                      />
+                      <p
+                        className="text-sm font-semibold"
+                        style={{ color: "var(--brand-1)" }}
+                      >
+                        Uploading image...
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 rounded-2xl bg-gray-200 flex items-center justify-center mb-3">
+                        <Image size={20} className="text-gray-400" />
+                      </div>
+                      <p className="text-gray-600 text-sm font-semibold mb-1">
+                        Click to upload product image
+                      </p>
+                      <p className="text-gray-400 text-xs">
+                        PNG, JPG or WEBP · Max 5MB
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={imageRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file);
+              }}
+            />
+
+            {/* Upload button if image already set */}
+            {imagePreview && !uploadingImage && (
+              <button
+                onClick={() => imageRef.current?.click()}
+                className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors duration-200"
+              >
+                <Upload size={12} />
+                Replace image
+              </button>
+            )}
+          </div>
+
+          {/* ── NAME ─────────────────────────────────── */}
           <div>
             <label className={labelClass}>Product Name *</label>
             <input
@@ -206,7 +374,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
             )}
           </div>
 
-          {/* Gender + Category */}
+          {/* ── GENDER + CATEGORY ────────────────────── */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Gender *</label>
@@ -238,7 +406,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
             </div>
           </div>
 
-          {/* Tag */}
+          {/* ── TAG ──────────────────────────────────── */}
           <div>
             <label className={labelClass}>Tag *</label>
             <div className="flex flex-wrap gap-2">
@@ -266,7 +434,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
             </div>
           </div>
 
-          {/* Description */}
+          {/* ── DESCRIPTION ──────────────────────────── */}
           <div>
             <label className={labelClass}>Description *</label>
             <textarea
@@ -281,7 +449,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
             )}
           </div>
 
-          {/* Price + Sale Price */}
+          {/* ── PRICE + SALE PRICE ───────────────────── */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Price (₦) *</label>
@@ -312,26 +480,18 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
                   {errors.sale_price}
                 </p>
               )}
-              {form.price &&
-                form.sale_price &&
-                !errors.sale_price &&
-                Number(form.sale_price) < Number(form.price) && (
-                  <p className="text-green-600 text-xs mt-1">
-                    {Math.round(
-                      ((Number(form.price) - Number(form.sale_price)) /
-                        Number(form.price)) *
-                        100
-                    )}
-                    % off · Save ₦
-                    {(
-                      Number(form.price) - Number(form.sale_price)
-                    ).toLocaleString("en-NG")}
-                  </p>
-                )}
+              {discountPercent && (
+                <p className="text-green-600 text-xs mt-1 font-medium">
+                  {discountPercent}% off · Save ₦
+                  {(
+                    Number(form.price) - Number(form.sale_price)
+                  ).toLocaleString("en-NG")}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Sizes */}
+          {/* ── SIZES ────────────────────────────────── */}
           <div>
             <label className={labelClass}>
               Sizes *{" "}
@@ -366,7 +526,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
             </div>
           </div>
 
-          {/* Colors */}
+          {/* ── COLORS ───────────────────────────────── */}
           <div>
             <label className={labelClass}>
               Colours *{" "}
@@ -387,7 +547,6 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
                     <button
                       onClick={() => handleRemoveColor(color)}
                       className="text-gray-400 hover:text-gray-700 transition-colors"
-                      aria-label={`Remove ${color}`}
                     >
                       <Minus size={11} />
                     </button>
@@ -408,14 +567,13 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
                 onClick={handleAddColor}
                 className="text-white p-3 rounded-xl transition-colors duration-200 hover:opacity-90 shrink-0"
                 style={{ background: "var(--brand-1)" }}
-                aria-label="Add colour"
               >
                 <Plus size={16} />
               </button>
             </div>
           </div>
 
-          {/* Toggles */}
+          {/* ── TOGGLES ──────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               {
@@ -439,20 +597,19 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
             ].map((toggle) => (
               <div
                 key={toggle.key}
-                className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between"
+                className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
               >
-                <div>
-                  <p className="text-gray-900 text-xs font-semibold">
+                <div className="min-w-0">
+                  <p className="text-gray-900 text-xs font-semibold truncate">
                     {toggle.label}
                   </p>
-                  <p className="text-gray-400 text-xs">{toggle.sub}</p>
+                  <p className="text-gray-400 text-xs truncate">{toggle.sub}</p>
                 </div>
                 <button
                   onClick={() => handleChange(toggle.key, !form[toggle.key])}
                   className={`relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0 ${
                     form[toggle.key] ? toggle.activeColor : "bg-gray-300"
                   }`}
-                  aria-label={`Toggle ${toggle.label}`}
                 >
                   <span
                     className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
@@ -466,7 +623,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-7 py-5 border-t border-gray-100 sticky bottom-0 bg-white">
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 sticky bottom-0 bg-white">
           <button
             onClick={onClose}
             className="flex-1 border border-gray-200 text-gray-500 hover:text-gray-900 text-sm font-medium py-3.5 rounded-xl transition-all duration-200"
@@ -475,10 +632,15 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 text-white text-sm font-semibold py-3.5 rounded-xl transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+            disabled={uploadingImage}
+            className="flex-1 text-white text-sm font-semibold py-3.5 rounded-xl transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: "var(--brand-1)" }}
           >
-            {product ? "Save Changes" : "Add Product"}
+            {uploadingImage
+              ? "Uploading..."
+              : product
+              ? "Save Changes"
+              : "Add Product"}
           </button>
         </div>
       </div>

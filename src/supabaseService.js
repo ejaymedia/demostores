@@ -20,7 +20,7 @@ export const updateSiteSettings = async (settings) => {
   try {
     const { data, error } = await supabase
       .from("site_settings")
-      .upsert(settings)
+      .upsert({ ...settings, updated_at: new Date().toISOString() })
       .select()
       .single();
     if (error) throw error;
@@ -31,20 +31,86 @@ export const updateSiteSettings = async (settings) => {
   }
 };
 
+// ── CATEGORIES ────────────────────────────────────────
+
+export const getCategories = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .order("name", { ascending: true });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("getCategories error:", error);
+    return [];
+  }
+};
+
+export const addCategory = async (name) => {
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .insert([{ name }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("addCategory error:", error);
+    return null;
+  }
+};
+
+export const updateCategory = async (id, name) => {
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .update({ name })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("updateCategory error:", error);
+    return null;
+  }
+};
+
+export const deleteCategory = async (id) => {
+  try {
+    const { error } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("deleteCategory error:", error);
+    return false;
+  }
+};
+
 // ── PRODUCTS ──────────────────────────────────────────
 
-export const getProducts = async ({ gender, category, sort, showOnly } = {}) => {
+export const getProducts = async ({
+  gender,
+  category,
+  sort,
+  showOnly,
+  search,
+  priceMax,
+} = {}) => {
   try {
     let query = supabase.from("products").select("*");
 
     if (gender && gender !== "all") {
       query = query.eq("gender", gender);
     }
-
     if (category && category !== "all") {
       query = query.eq("category", category);
     }
-
     if (showOnly === "hotDeal") {
       query = query.eq("is_hot_deal", true);
     } else if (showOnly === "newArrival") {
@@ -52,7 +118,14 @@ export const getProducts = async ({ gender, category, sort, showOnly } = {}) => 
     } else if (showOnly === "onSale") {
       query = query.not("sale_price", "is", null);
     }
-
+    if (search && search.trim()) {
+      query = query.or(
+        `name.ilike.%${search}%,description.ilike.%${search}%,category.ilike.%${search}%`
+      );
+    }
+    if (priceMax) {
+      query = query.lte("price", priceMax);
+    }
     if (sort === "price_asc") {
       query = query.order("price", { ascending: true });
     } else if (sort === "price_desc") {
@@ -82,23 +155,6 @@ export const getProductById = async (id) => {
   } catch (error) {
     console.error("getProductById error:", error);
     return null;
-  }
-};
-
-export const getNewArrivals = async (limit = 8) => {
-  try {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("is_new_arrival", true)
-      .eq("in_stock", true)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("getNewArrivals error:", error);
-    return [];
   }
 };
 
@@ -166,20 +222,6 @@ export const deleteProduct = async (id) => {
 
 // ── ENQUIRIES ─────────────────────────────────────────
 
-export const getEnquiries = async () => {
-  try {
-    const { data, error } = await supabase
-      .from("enquiries")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("getEnquiries error:", error);
-    return [];
-  }
-};
-
 export const addEnquiry = async (enquiry) => {
   try {
     const { data, error } = await supabase
@@ -192,36 +234,6 @@ export const addEnquiry = async (enquiry) => {
   } catch (error) {
     console.error("addEnquiry error:", error);
     return null;
-  }
-};
-
-export const updateEnquiryStatus = async (id, status) => {
-  try {
-    const { data, error } = await supabase
-      .from("enquiries")
-      .update({ status })
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("updateEnquiryStatus error:", error);
-    return null;
-  }
-};
-
-export const deleteEnquiry = async (id) => {
-  try {
-    const { error } = await supabase
-      .from("enquiries")
-      .delete()
-      .eq("id", id);
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("deleteEnquiry error:", error);
-    return false;
   }
 };
 
@@ -240,5 +252,18 @@ export const uploadFile = async (bucket, path, file) => {
   } catch (error) {
     console.error("uploadFile error:", error);
     return null;
+  }
+};
+
+export const deleteFile = async (bucket, path) => {
+  try {
+    const { error } = await supabase.storage
+      .from(bucket)
+      .remove([path]);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("deleteFile error:", error);
+    return false;
   }
 };

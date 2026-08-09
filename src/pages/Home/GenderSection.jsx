@@ -1,28 +1,31 @@
 import { motion } from "framer-motion";
 import { SectionHeader, GenderCard } from "../../components/index";
-
-const genders = [
-  {
-    gender: "men",
-    label: "Men",
-    description: "Clothing · Shoes · Bags · Accessories",
-    image: `${import.meta.env.BASE_URL}genders/men.jpg`,
-  },
-  {
-    gender: "women",
-    label: "Women",
-    description: "Clothing · Shoes · Bags · Accessories",
-    image: `${import.meta.env.BASE_URL}genders/women.jpg`,
-  },
-  {
-    gender: "kids",
-    label: "Kids",
-    description: "Clothing · Shoes · Accessories",
-    image: `${import.meta.env.BASE_URL}genders/kids.jpg`,
-  },
-];
+import { useSite } from "../../context/SiteContext";
 
 const GenderSection = () => {
+  const { siteSettings } = useSite();
+
+  const genders = [
+    {
+      gender: "men",
+      label: "Men",
+      description: "Clothing · Shoes · Bags · Accessories",
+      image: siteSettings.men_image_url || `${import.meta.env.BASE_URL}genders/men.jpg`,
+    },
+    {
+      gender: "women",
+      label: "Women",
+      description: "Clothing · Shoes · Bags · Accessories",
+      image: siteSettings.women_image_url || `${import.meta.env.BASE_URL}genders/women.jpg`,
+    },
+    {
+      gender: "kids",
+      label: "Kids",
+      description: "Clothing · Shoes · Accessories",
+      image: siteSettings.kids_image_url || `${import.meta.env.BASE_URL}genders/kids.jpg`,
+    },
+  ];
+
   return (
     <div className="bg-white py-20 px-4 sm:px-6 lg:px-10 border-t border-gray-100">
       <div className="max-w-7xl mx-auto">

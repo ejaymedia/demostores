@@ -1,13 +1,5 @@
 import { X } from "lucide-react";
 
-const categories = [
-  { id: "all", label: "All" },
-  { id: "clothing", label: "Clothing" },
-  { id: "shoes", label: "Shoes" },
-  { id: "bags", label: "Bags" },
-  { id: "accessories", label: "Accessories" },
-];
-
 const sortOptions = [
   { id: "newest", label: "Newest" },
   { id: "price_asc", label: "Price: Low–High" },
@@ -30,22 +22,27 @@ const FilterSidebar = ({
   priceRange,
   maxPrice,
   onPriceChange,
+  categories = [],
 }) => {
   const handleReset = () => {
-    onChange({
-      category: "all",
-      sort: "newest",
-      showOnly: "all",
-    });
+    onChange({ category: "all", sort: "newest", showOnly: "all" });
     onPriceChange([0, maxPrice]);
   };
 
+  const allCategories = [
+    { id: "all", label: "All" },
+    ...categories.map((cat) => ({
+      id: cat.name.toLowerCase(),
+      label: cat.name,
+    })),
+  ];
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 p-5">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-gray-900 text-sm font-bold uppercase tracking-widest">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-gray-900 text-xs font-bold uppercase tracking-widest">
           Filters
         </h3>
         <div className="flex items-center gap-3">
@@ -69,12 +66,12 @@ const FilterSidebar = ({
       </div>
 
       {/* Category */}
-      <div className="mb-6">
+      <div className="mb-5">
         <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
           Category
         </p>
         <div className="flex flex-col gap-1">
-          {categories.map((cat) => (
+          {allCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => onChange({ ...filters, category: cat.id })}
@@ -96,10 +93,10 @@ const FilterSidebar = ({
       </div>
 
       {/* Divider */}
-      <div className="border-t border-gray-100 mb-6" />
+      <div className="border-t border-gray-100 mb-5" />
 
       {/* Price Range */}
-      <div className="mb-6">
+      <div className="mb-5">
         <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
           Price Range
         </p>
@@ -110,7 +107,8 @@ const FilterSidebar = ({
           step={500}
           value={priceRange[1]}
           onChange={(e) => onPriceChange([0, Number(e.target.value)])}
-          className="w-full accent-[var(--brand-1)] cursor-pointer"
+          className="w-full cursor-pointer accent-[var(--brand-1)]"
+          style={{ accentColor: "var(--brand-1)" }}
         />
         <div className="flex justify-between mt-2">
           <span className="text-xs text-gray-400">₦0</span>
@@ -124,10 +122,10 @@ const FilterSidebar = ({
       </div>
 
       {/* Divider */}
-      <div className="border-t border-gray-100 mb-6" />
+      <div className="border-t border-gray-100 mb-5" />
 
       {/* Sort By */}
-      <div className="mb-6">
+      <div className="mb-5">
         <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">
           Sort By
         </p>
@@ -154,7 +152,7 @@ const FilterSidebar = ({
       </div>
 
       {/* Divider */}
-      <div className="border-t border-gray-100 mb-6" />
+      <div className="border-t border-gray-100 mb-5" />
 
       {/* Show Only */}
       <div>

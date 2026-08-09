@@ -50,7 +50,10 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <div className="bg-gray-50 py-20 px-4 sm:px-6 lg:px-10 border-t border-gray-100">
+    <div
+      id="services"
+      className="bg-gray-50 py-20 px-4 sm:px-6 lg:px-10 border-t border-gray-100"
+    >
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -59,7 +62,7 @@ const FeaturesSection = () => {
           viewport={{ once: true }}
         >
           <SectionHeader
-            label="Why Shop With Us"
+            label="Our Services"
             title="The Difference You'll Feel"
             description="Here is what makes shopping with us stand out from the rest."
             center
@@ -76,7 +79,6 @@ const FeaturesSection = () => {
               viewport={{ once: true }}
               className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300"
             >
-              {/* Icon */}
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-white"
                 style={{ background: "var(--brand-1)" }}

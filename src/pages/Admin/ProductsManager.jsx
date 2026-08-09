@@ -1,8 +1,15 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Flame, Star } from "lucide-react";
-import Badge from "../../components/Badge";
+import { useState, useRef } from "react";
+import { Plus, Pencil, Trash2, Flame, Star, Upload, RefreshCw } from "lucide-react";
 import AddEditProductModal from "./AddEditProductModal";
 import { products as initialProducts } from "../../data/products";
+import { uploadFile } from "../../supabaseService";
+
+const genderTabs = [
+  { id: "all", label: "All" },
+  { id: "men", label: "Men" },
+  { id: "women", label: "Women" },
+  { id: "kids", label: "Kids" },
+];
 
 const ProductsManager = () => {
   const [productList, setProductList] = useState(initialProducts);
@@ -10,13 +17,6 @@ const ProductsManager = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [activeGender, setActiveGender] = useState("all");
-
-  const genderTabs = [
-    { id: "all", label: "All" },
-    { id: "men", label: "Men" },
-    { id: "women", label: "Women" },
-    { id: "kids", label: "Kids" },
-  ];
 
   const filtered =
     activeGender === "all"
@@ -83,30 +83,31 @@ const ProductsManager = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-gray-900 font-bold text-lg">Products</h2>
+          <h2 className="text-gray-900 font-bold text-base">Products</h2>
           <p className="text-gray-400 text-xs mt-0.5">
             {filtered.length} of {productList.length} products
           </p>
         </div>
         <button
           onClick={handleAdd}
-          className="inline-flex items-center gap-2 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+          className="inline-flex items-center gap-2 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-full transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shrink-0"
           style={{ background: "var(--brand-1)" }}
         >
-          <Plus size={16} />
-          Add Product
+          <Plus size={15} />
+          <span className="hidden sm:inline">Add Product</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </div>
 
       {/* Gender Filter Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-100 pb-1">
+      <div className="flex gap-1 mb-5 border-b border-gray-100 pb-0 overflow-x-auto">
         {genderTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveGender(tab.id)}
-            className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-all duration-200 border-b-2 -mb-px ${
+            className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg transition-all duration-200 border-b-2 -mb-px whitespace-nowrap ${
               activeGender === tab.id
                 ? "border-current"
                 : "border-transparent text-gray-400 hover:text-gray-700"
@@ -122,177 +123,143 @@ const ProductsManager = () => {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-
-        {/* Table Header */}
-        <div className="hidden lg:grid grid-cols-[1fr_80px_80px_90px_80px_70px_70px_80px] gap-3 px-5 py-3 bg-gray-50 border-b border-gray-100">
-          {[
-            "Product",
-            "Gender",
-            "Category",
-            "Price",
-            "Sale Price",
-            "Hot",
-            "New",
-            "Actions",
-          ].map((col) => (
-            <span
-              key={col}
-              className="text-gray-400 text-xs font-bold uppercase tracking-wider"
-            >
-              {col}
-            </span>
-          ))}
+      {/* Empty state */}
+      {filtered.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-2xl py-16 text-center">
+          <span className="text-4xl mb-3 block">📦</span>
+          <p className="text-gray-400 text-sm">No products yet.</p>
         </div>
-
-        {/* Empty state */}
-        {filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <span className="text-4xl mb-3 block">📦</span>
-            <p className="text-gray-400 text-sm">No products yet.</p>
-          </div>
-        ) : (
-          filtered.map((product, index) => (
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map((product) => (
             <div
               key={product.id}
-              className={`flex flex-col lg:grid lg:grid-cols-[1fr_80px_80px_90px_80px_70px_70px_80px] gap-3 px-5 py-4 transition-colors duration-150 hover:bg-gray-50 ${
-                index !== filtered.length - 1
-                  ? "border-b border-gray-50"
-                  : ""
-              }`}
+              className="bg-white border border-gray-100 rounded-2xl p-4 transition-colors duration-150 hover:border-gray-200"
             >
-              {/* Product */}
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-gray-100 border border-gray-100">
+              <div className="flex items-start gap-3">
+
+                {/* Image */}
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 border border-gray-100">
                   <img
                     src={product.image_url}
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-gray-900 text-sm font-semibold truncate">
-                    {product.name}
-                  </p>
-                  <p className="text-gray-400 text-xs truncate">
-                    {product.in_stock ? (
-                      <span className="text-green-600">In Stock</span>
-                    ) : (
-                      <span className="text-red-500">Out of Stock</span>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-gray-900 text-sm font-semibold truncate">
+                        {product.name}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-0.5 capitalize">
+                        {product.gender} · {product.category}
+                      </p>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleToggleHotDeal(product.id)}
+                        className={`p-1.5 rounded-lg transition-colors duration-200 ${
+                          product.is_hot_deal
+                            ? "text-amber-500 bg-amber-50"
+                            : "text-gray-300 hover:text-amber-400 hover:bg-amber-50"
+                        }`}
+                        title="Toggle hot deal"
+                      >
+                        <Flame size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleToggleNewArrival(product.id)}
+                        className={`p-1.5 rounded-lg transition-colors duration-200 ${
+                          product.is_new_arrival
+                            ? "text-blue-500 bg-blue-50"
+                            : "text-gray-300 hover:text-blue-400 hover:bg-blue-50"
+                        }`}
+                        title="Toggle new arrival"
+                      >
+                        <Star size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(product)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors duration-200"
+                        title="Edit"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(product.id)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors duration-200"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Price row */}
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    <span className="text-gray-900 text-xs font-bold">
+                      {formatPrice(product.price)}
+                    </span>
+                    {product.sale_price && (
+                      <span className="text-red-500 text-xs font-semibold">
+                        Sale: {formatPrice(product.sale_price)}
+                      </span>
                     )}
-                  </p>
+                  </div>
+
+                  {/* Badges + Stock Toggle */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {/* Stock toggle */}
+                    <button
+                      onClick={() => handleToggleStock(product.id)}
+                      className={`relative w-8 h-4 rounded-full transition-colors duration-200 shrink-0 ${
+                        product.in_stock ? "bg-green-500" : "bg-gray-300"
+                      }`}
+                      title="Toggle stock"
+                    >
+                      <span
+                        className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                          product.in_stock
+                            ? "translate-x-4"
+                            : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                    <span
+                      className={`text-xs font-medium ${
+                        product.in_stock
+                          ? "text-green-600"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {product.in_stock ? "In Stock" : "Out of Stock"}
+                    </span>
+                    {product.is_hot_deal && (
+                      <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium">
+                        🔥 Hot
+                      </span>
+                    )}
+                    {product.is_new_arrival && (
+                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+                        🆕 New
+                      </span>
+                    )}
+                    {product.sale_price && (
+                      <span className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-medium">
+                        🏷️ Sale
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Gender */}
-              <div className="flex items-center lg:block">
-                <span className="lg:hidden text-gray-400 text-xs w-20 shrink-0">Gender:</span>
-                <span className="text-gray-500 text-xs capitalize">
-                  {product.gender}
-                </span>
-              </div>
-
-              {/* Category */}
-              <div className="flex items-center lg:block">
-                <span className="lg:hidden text-gray-400 text-xs w-20 shrink-0">Category:</span>
-                <span className="text-gray-500 text-xs capitalize">
-                  {product.category}
-                </span>
-              </div>
-
-              {/* Price */}
-              <div className="flex items-center lg:block">
-                <span className="lg:hidden text-gray-400 text-xs w-20 shrink-0">Price:</span>
-                <span className="text-gray-900 text-xs font-semibold">
-                  {formatPrice(product.price)}
-                </span>
-              </div>
-
-              {/* Sale Price */}
-              <div className="flex items-center lg:block">
-                <span className="lg:hidden text-gray-400 text-xs w-20 shrink-0">Sale:</span>
-                {product.sale_price ? (
-                  <span className="text-red-500 text-xs font-semibold">
-                    {formatPrice(product.sale_price)}
-                  </span>
-                ) : (
-                  <span className="text-gray-300 text-xs">—</span>
-                )}
-              </div>
-
-              {/* Hot Deal Toggle */}
-              <div className="flex items-center lg:block">
-                <span className="lg:hidden text-gray-400 text-xs w-20 shrink-0">Hot Deal:</span>
-                <button
-                  onClick={() => handleToggleHotDeal(product.id)}
-                  className={`p-1.5 rounded-lg transition-colors duration-200 ${
-                    product.is_hot_deal
-                      ? "text-amber-500 bg-amber-50"
-                      : "text-gray-300 hover:text-amber-400 hover:bg-amber-50"
-                  }`}
-                  aria-label="Toggle hot deal"
-                  title="Toggle hot deal"
-                >
-                  <Flame size={15} />
-                </button>
-              </div>
-
-              {/* New Arrival Toggle */}
-              <div className="flex items-center lg:block">
-                <span className="lg:hidden text-gray-400 text-xs w-20 shrink-0">New Arrival:</span>
-                <button
-                  onClick={() => handleToggleNewArrival(product.id)}
-                  className={`p-1.5 rounded-lg transition-colors duration-200 ${
-                    product.is_new_arrival
-                      ? "text-blue-500 bg-blue-50"
-                      : "text-gray-300 hover:text-blue-400 hover:bg-blue-50"
-                  }`}
-                  aria-label="Toggle new arrival"
-                  title="Toggle new arrival"
-                >
-                  <Star size={15} />
-                </button>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2">
-                {/* Stock toggle */}
-                <button
-                  onClick={() => handleToggleStock(product.id)}
-                  className={`relative w-9 h-5 rounded-full transition-colors duration-200 shrink-0 ${
-                    product.in_stock ? "bg-green-500" : "bg-gray-300"
-                  }`}
-                  aria-label="Toggle stock"
-                  title="Toggle stock"
-                >
-                  <span
-                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                      product.in_stock ? "translate-x-4" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-                <button
-                  onClick={() => handleEdit(product)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors duration-200"
-                  aria-label="Edit"
-                  title="Edit"
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  onClick={() => setDeleteConfirm(product.id)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors duration-200"
-                  aria-label="Delete"
-                  title="Delete"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (

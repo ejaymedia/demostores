@@ -1,5 +1,5 @@
+import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { StrictMode, useEffect, useState } from "react";
 import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { SiteProvider } from "./context/SiteContext";
@@ -11,6 +11,8 @@ import Shop from "./pages/Shop/Shop";
 import ProductDetail from "./pages/ProductDetail/ProductDetail";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
+import FAQ from "./pages/FAQ/FAQ";
+import About from "./pages/About/About";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -30,6 +32,8 @@ createRoot(document.getElementById("root")).render(
             <Route path="/" element={<App />} />
             <Route path="/shop/:gender" element={<Shop />} />
             <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/about" element={<About />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route
               path="/admin-dashboard"

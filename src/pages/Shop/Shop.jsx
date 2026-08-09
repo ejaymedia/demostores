@@ -1,11 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SlidersHorizontal, X, Search } from "lucide-react";
 import { Navbar, Footer, ProductCard, BackToTop } from "../../components/index";
 import FilterSidebar from "./FilterSidebar";
-import { products } from "../../data/products";
-
-const ITEMS_PER_PAGE = 9;
+import { getProducts, getCategories } from "../../supabaseService";
 
 const genderTabs = [
   { id: "men", label: "👔 Men" },
@@ -13,7 +11,8 @@ const genderTabs = [
   { id: "kids", label: "🧒 Kids" },
 ];
 
-const maxPriceFromProducts = Math.max(...products.map((p) => p.price));
+const ITEMS_PER_PAGE = 9;
+const DEFAULT_MAX_PRICE = 100000;
 
 const Shop = () => {
   const { gender } = useParams();
@@ -23,6 +22,10 @@ const Shop = () => {
     ? gender
     : "men";
 
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [maxPrice, setMaxPrice] = useState(DEFAULT_MAX_PRICE);
   const [filters, setFilters] = useState({
     category: "all",
     sort: "newest",
@@ -31,14 +34,45 @@ const Shop = () => {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, maxPriceFromProducts]);
+  const [priceRange, setPriceRange] = useState([0, DEFAULT_MAX_PRICE]);
+
+  // Fetch categories once
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const data = await getCategories();
+      setCategories(data);
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch products when gender changes
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setCurrentPage(1);
+      setFilters({ category: "all", sort: "newest", showOnly: "all" });
+      setSearch("");
+
+      const data = await getProducts({ gender: activeGender });
+      setProducts(data);
+
+      // Set max price from fetched products
+      if (data.length > 0) {
+        const max = Math.max(...data.map((p) => p.price));
+        setMaxPrice(max);
+        setPriceRange([0, max]);
+      } else {
+        setMaxPrice(DEFAULT_MAX_PRICE);
+        setPriceRange([0, DEFAULT_MAX_PRICE]);
+      }
+
+      setLoading(false);
+    };
+    fetchProducts();
+  }, [activeGender]);
 
   const handleGenderChange = (g) => {
     navigate(`/shop/${g}`);
-    setCurrentPage(1);
-    setFilters({ category: "all", sort: "newest", showOnly: "all" });
-    setSearch("");
-    setPriceRange([0, maxPriceFromProducts]);
   };
 
   const handleFilterChange = (newFilters) => {
@@ -51,12 +85,15 @@ const Shop = () => {
     setCurrentPage(1);
   };
 
+  // Client-side filtering on top of Supabase data
   const filtered = useMemo(() => {
-    let result = products.filter((p) => p.gender === activeGender);
+    let result = [...products];
 
     // Category
     if (filters.category !== "all") {
-      result = result.filter((p) => p.category === filters.category);
+      result = result.filter(
+        (p) => p.category?.toLowerCase() === filters.category.toLowerCase()
+      );
     }
 
     // Price range
@@ -82,9 +119,9 @@ const Shop = () => {
       const q = search.toLowerCase();
       result = result.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
+          p.name?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q)
       );
     }
 
@@ -103,16 +140,35 @@ const Shop = () => {
           Number(b.sale_price !== null) - Number(a.sale_price !== null)
       );
     }
-    // Default: newest — products array order
 
     return result;
-  }, [activeGender, filters, search, priceRange]);
+  }, [products, filters, search, priceRange]);
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
+  );
+
+  // Loading skeleton
+  const Skeleton = () => (
+    <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-gray-100 rounded-2xl overflow-hidden animate-pulse"
+        >
+          <div className="aspect-square bg-gray-200" />
+          <div className="p-4 flex flex-col gap-2">
+            <div className="h-3 bg-gray-200 rounded-full w-1/3" />
+            <div className="h-4 bg-gray-200 rounded-full w-3/4" />
+            <div className="h-3 bg-gray-200 rounded-full w-full" />
+            <div className="h-8 bg-gray-200 rounded-full mt-2" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 
   return (
@@ -142,19 +198,22 @@ const Shop = () => {
         </div>
 
         {/* Gender Tabs */}
-        <div className="flex gap-2 mb-8 border-b border-gray-100 pb-1">
+        <div className="flex gap-1 mb-8 border-b border-gray-100 overflow-x-auto">
           {genderTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleGenderChange(tab.id)}
-              className={`px-5 py-3 text-sm font-bold rounded-t-xl transition-all duration-200 border-b-2 -mb-px ${
+              className={`px-5 py-3 text-sm font-bold rounded-t-xl transition-all duration-200 border-b-2 -mb-px whitespace-nowrap ${
                 activeGender === tab.id
                   ? "border-current"
                   : "border-transparent text-gray-400 hover:text-gray-700"
               }`}
               style={
                 activeGender === tab.id
-                  ? { color: "var(--brand-1)", borderColor: "var(--brand-1)" }
+                  ? {
+                      color: "var(--brand-1)",
+                      borderColor: "var(--brand-1)",
+                    }
                   : {}
               }
             >
@@ -189,7 +248,6 @@ const Shop = () => {
                   setCurrentPage(1);
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                aria-label="Clear search"
               >
                 <X size={14} />
               </button>
@@ -212,8 +270,9 @@ const Shop = () => {
               filters={filters}
               onChange={handleFilterChange}
               priceRange={priceRange}
-              maxPrice={maxPriceFromProducts}
+              maxPrice={maxPrice}
               onPriceChange={handlePriceChange}
+              categories={categories}
             />
           </aside>
 
@@ -234,10 +293,9 @@ const Shop = () => {
                   onClose={() => setMobileFilterOpen(false)}
                   isMobile
                   priceRange={priceRange}
-                  maxPrice={maxPriceFromProducts}
-                  onPriceChange={(range) => {
-                    handlePriceChange(range);
-                  }}
+                  maxPrice={maxPrice}
+                  onPriceChange={handlePriceChange}
+                  categories={categories}
                 />
               </div>
             </div>
@@ -247,30 +305,25 @@ const Shop = () => {
           <div className="flex-1 min-w-0">
 
             {/* Results count */}
-            <p className="text-gray-400 text-sm mb-6">
-              Showing{" "}
-              <span className="text-gray-900 font-semibold">
-                {filtered.length}
-              </span>{" "}
-              {filtered.length === 1 ? "product" : "products"} in{" "}
-              <span className="text-gray-900 font-semibold capitalize">
-                {activeGender}'s
-              </span>{" "}
-              collection
-            </p>
+            {!loading && (
+              <p className="text-gray-400 text-sm mb-6">
+                Showing{" "}
+                <span className="text-gray-900 font-semibold">
+                  {filtered.length}
+                </span>{" "}
+                {filtered.length === 1 ? "product" : "products"} in{" "}
+                <span className="text-gray-900 font-semibold capitalize">
+                  {activeGender}'s
+                </span>{" "}
+                collection
+              </p>
+            )}
 
-            {/* Grid */}
-            {paginated.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
-                {paginated.map((product, index) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    index={index}
-                  />
-                ))}
-              </div>
-            ) : (
+            {/* Loading */}
+            {loading && <Skeleton />}
+
+            {/* Empty state */}
+            {!loading && paginated.length === 0 && (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <span className="text-6xl mb-4">🔍</span>
                 <h3 className="text-gray-900 font-bold text-lg mb-2">
@@ -287,7 +340,7 @@ const Shop = () => {
                       showOnly: "all",
                     });
                     setSearch("");
-                    setPriceRange([0, maxPriceFromProducts]);
+                    setPriceRange([0, maxPrice]);
                   }}
                   className="text-white text-sm font-semibold px-6 py-3 rounded-full transition-all duration-200 hover:opacity-90"
                   style={{ background: "var(--brand-1)" }}
@@ -297,9 +350,22 @@ const Shop = () => {
               </div>
             )}
 
+            {/* Grid */}
+            {!loading && paginated.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
+                {paginated.map((product, index) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={index}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-12">
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-12 flex-wrap">
                 <button
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(prev - 1, 1))

@@ -1,16 +1,24 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { SectionHeader, ProductCard } from "../../components/index";
-import { products } from "../../data/products";
+import { getHotDeals } from "../../supabaseService";
 
 const FeaturedProducts = () => {
   const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Hot deals first, fill remaining from others, max 8
-  const hotDeals = products.filter((p) => p.is_hot_deal && p.in_stock);
-  const others = products.filter((p) => !p.is_hot_deal && p.in_stock);
-  const featured = [...hotDeals, ...others].slice(0, 8);
+  useEffect(() => {
+    const fetchHotDeals = async () => {
+      setLoading(true);
+      const data = await getHotDeals(8);
+      setProducts(data);
+      setLoading(false);
+    };
+    fetchHotDeals();
+  }, []);
 
   return (
     <div className="bg-white py-20 px-4 sm:px-6 lg:px-10 border-t border-gray-100">
@@ -25,7 +33,7 @@ const FeaturedProducts = () => {
             viewport={{ once: true }}
           >
             <SectionHeader
-              label="Hot Deals"
+              label="Hot Deals & Sale"
               title={
                 <>
                   Best Picks
@@ -49,17 +57,49 @@ const FeaturedProducts = () => {
           </motion.button>
         </div>
 
-        {/* Products grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-          {featured.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              index={index}
-            />
-          ))}
-        </div>
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-gray-100 rounded-2xl overflow-hidden animate-pulse"
+              >
+                <div className="aspect-square bg-gray-200" />
+                <div className="p-4 flex flex-col gap-2">
+                  <div className="h-3 bg-gray-200 rounded-full w-1/3" />
+                  <div className="h-4 bg-gray-200 rounded-full w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded-full w-full" />
+                  <div className="h-3 bg-gray-200 rounded-full w-2/3" />
+                  <div className="h-8 bg-gray-200 rounded-full mt-2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
+        {/* Empty state */}
+        {!loading && products.length === 0 && (
+          <div className="text-center py-20">
+            <span className="text-5xl mb-4 block">🛍️</span>
+            <p className="text-gray-400 text-sm">
+              No hot deals available right now. Check back soon!
+            </p>
+          </div>
+        )}
+
+        {/* Products grid */}
+        {!loading && products.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            {products.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={index}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
