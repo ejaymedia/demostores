@@ -25,7 +25,6 @@ const Navbar = () => {
     setShopDropdownOpen(false);
   }, [location]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -36,7 +35,6 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fire pending scroll after navigating home
   useEffect(() => {
     if (pendingScroll && location.pathname === "/") {
       const tryScroll = (attempts = 0) => {
@@ -91,6 +89,32 @@ const Navbar = () => {
       active ? "text-gray-900" : "text-gray-500 hover:text-gray-900"
     }`;
 
+  // Logo component — responsive to any logo shape
+  const Logo = ({ className = "h-10" }) => {
+    if (!siteSettings.logo_url) {
+      return (
+        <span
+          className="font-black text-lg tracking-tight"
+          style={{ color: "var(--brand-1)" }}
+        >
+          {siteSettings.business_name}
+        </span>
+      );
+    }
+    return (
+      <img
+        src={siteSettings.logo_url}
+        alt={siteSettings.business_name}
+        className={`${className} w-auto object-contain`}
+        style={{ maxWidth: "160px" }}
+        onError={(e) => {
+          e.target.style.display = "none";
+          e.target.nextSibling && (e.target.nextSibling.style.display = "block");
+        }}
+      />
+    );
+  };
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -105,20 +129,10 @@ const Navbar = () => {
           {/* Logo */}
           <button
             onClick={goHome}
-            className="flex items-center gap-2.5 shrink-0"
+            className="flex items-center shrink-0 max-w-[160px] sm:max-w-[200px]"
+            aria-label={`${siteSettings.business_name} — Home`}
           >
-            <img
-              src={siteSettings.logo_url}
-              alt={siteSettings.business_name}
-              className="h-9 w-auto object-contain"
-              onError={(e) => { e.target.style.display = "none"; }}
-            />
-            <span
-              className="font-black text-lg tracking-tight hidden sm:block"
-              style={{ color: "var(--brand-1)" }}
-            >
-              {siteSettings.business_name}
-            </span>
+            <Logo className="h-9 sm:h-10" />
           </button>
 
           {/* Desktop Nav */}
@@ -141,7 +155,6 @@ const Navbar = () => {
                 />
               </button>
 
-              {/* Dropdown Menu */}
               {shopDropdownOpen && (
                 <div className="absolute top-full left-0 mt-1.5 w-44 bg-white rounded-2xl shadow-lg shadow-gray-200/60 border border-gray-100 overflow-hidden z-50">
                   {genderLinks.map((link) => (
@@ -169,7 +182,6 @@ const Navbar = () => {
               )}
             </li>
 
-            {/* Services */}
             <li>
               <button
                 onClick={() => scrollToSection("services")}
@@ -178,8 +190,6 @@ const Navbar = () => {
                 Services
               </button>
             </li>
-
-            {/* FAQ */}
             <li>
               <button
                 onClick={() => goTo("/faq")}
@@ -190,8 +200,6 @@ const Navbar = () => {
                 FAQ
               </button>
             </li>
-
-            {/* About */}
             <li>
               <button
                 onClick={() => goTo("/about")}
@@ -209,7 +217,7 @@ const Navbar = () => {
             href={`https://wa.me/${siteSettings.whatsapp}`}
             target="_blank"
             rel="noreferrer"
-            className="hidden md:inline-flex items-center gap-2 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+            className="hidden md:inline-flex items-center gap-2 text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shrink-0"
             style={{ background: "var(--brand-1)" }}
           >
             <FaWhatsapp size={16} />
@@ -222,7 +230,7 @@ const Navbar = () => {
               href={`https://wa.me/${siteSettings.whatsapp}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-full text-white transition-all duration-200"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full text-white transition-all duration-200 shrink-0"
               style={{ background: "var(--brand-1)" }}
               aria-label="WhatsApp"
             >
@@ -242,8 +250,6 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 flex flex-col gap-1 shadow-lg">
-
-          {/* Shop section */}
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 px-3 mb-1">
             Shop
           </p>
@@ -268,7 +274,6 @@ const Navbar = () => {
 
           <div className="border-t border-gray-100 my-2" />
 
-          {/* Other links */}
           <button
             onClick={() => scrollToSection("services")}
             className="text-left text-sm font-semibold px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200"

@@ -43,6 +43,31 @@ const AdminLogin = () => {
     if (e.key === "Enter") handleLogin();
   };
 
+  // Logo — responsive, no text beside it
+  const LoginLogo = () => {
+    if (!siteSettings.logo_url) {
+      return (
+        <span
+          className="font-black text-2xl"
+          style={{ color: "var(--brand-1)" }}
+        >
+          {siteSettings.business_name}
+        </span>
+      );
+    }
+    return (
+      <img
+        src={siteSettings.logo_url}
+        alt={siteSettings.business_name}
+        className="h-14 w-auto object-contain mx-auto"
+        style={{ maxWidth: "180px", maxHeight: "56px" }}
+        onError={(e) => {
+          e.target.style.display = "none";
+        }}
+      />
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
 
@@ -58,18 +83,9 @@ const AdminLogin = () => {
 
         {/* Logo + Brand */}
         <div className="text-center mb-8">
-          <img
-            src={siteSettings.logo_url}
-            alt={siteSettings.business_name}
-            className="h-14 w-auto object-contain mx-auto mb-4"
-            onError={(e) => { e.target.style.display = "none"; }}
-          />
-          <h1
-            className="text-2xl font-black mb-1"
-            style={{ color: "var(--brand-1)" }}
-          >
-            {siteSettings.business_name}
-          </h1>
+          <div className="flex items-center justify-center mb-3">
+            <LoginLogo />
+          </div>
           <p className="text-gray-400 text-sm">
             Admin Portal — Restricted Access
           </p>

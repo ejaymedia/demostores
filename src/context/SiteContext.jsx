@@ -20,94 +20,87 @@ export const SiteProvider = ({ children }) => {
     );
 
     // ── Page Title ────────────────────────────────────
-    document.title = settings.site_title || defaultSiteSettings.site_title;
+    if (settings.site_title) {
+      document.title = settings.site_title;
+    }
 
     // ── Favicon ───────────────────────────────────────
-    const favicon = document.getElementById("favicon");
-    if (favicon && settings.favicon_url) {
-      favicon.href = settings.favicon_url;
+    if (settings.favicon_url) {
+      let favicon = document.getElementById("favicon");
+      if (!favicon) {
+        favicon = document.createElement("link");
+        favicon.id = "favicon";
+        favicon.rel = "icon";
+        favicon.type = "image/png";
+        document.head.appendChild(favicon);
+      }
+      // Force browser to reload favicon by appending cache-buster
+      favicon.href = `${settings.favicon_url}?t=${Date.now()}`;
     }
 
     // ── Theme Color ───────────────────────────────────
     const themeColor = document.getElementById("meta-theme-color");
-    if (themeColor) {
-      themeColor.content =
-        settings.brand_color_1 || defaultSiteSettings.brand_color_1;
+    if (themeColor && settings.brand_color_1) {
+      themeColor.content = settings.brand_color_1;
     }
 
     // ── Meta Description ──────────────────────────────
     const metaDesc = document.getElementById("meta-description");
-    if (metaDesc) {
-      metaDesc.content =
-        settings.tagline || defaultSiteSettings.tagline;
+    if (metaDesc && settings.tagline) {
+      metaDesc.content = settings.tagline;
     }
 
     // ── Open Graph ────────────────────────────────────
     const ogTitle = document.getElementById("og-title");
-    if (ogTitle) {
-      ogTitle.content =
-        settings.site_title || defaultSiteSettings.site_title;
+    if (ogTitle && settings.site_title) {
+      ogTitle.content = settings.site_title;
     }
 
     const ogDesc = document.getElementById("og-description");
-    if (ogDesc) {
-      ogDesc.content = settings.tagline || defaultSiteSettings.tagline;
-    }
-
-    const ogImage = document.getElementById("og-image");
-    if (ogImage) {
-      ogImage.content =
-        settings.og_image_url || defaultSiteSettings.og_image_url;
-    }
-
-    const ogUrl = document.getElementById("og-url");
-    if (ogUrl) {
-      ogUrl.content = settings.og_url || defaultSiteSettings.og_url;
+    if (ogDesc && settings.tagline) {
+      ogDesc.content = settings.tagline;
     }
 
     const ogSiteName = document.getElementById("og-site-name");
-    if (ogSiteName) {
-      ogSiteName.content =
-        settings.business_name || defaultSiteSettings.business_name;
+    if (ogSiteName && settings.business_name) {
+      ogSiteName.content = settings.business_name;
+    }
+  };
+
+  const loadSettings = async () => {
+    // Apply defaults first (colours + title only, no images)
+    applySettings(defaultSiteSettings);
+
+    if (!supabase) {
+      setLoading(false);
+      return;
     }
 
-    const ogType = document.getElementById("og-type");
-    if (ogType) {
-      ogType.content = "website";
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        // Supabase values always win — no merging with defaults for image fields
+        const merged = {
+          ...defaultSiteSettings,
+          ...data,
+        };
+        setSiteSettings(merged);
+        applySettings(merged);
+      }
+    } catch (error) {
+      console.error("loadSettings error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const loadSettings = async () => {
-      // Apply defaults first so the site isn't blank while loading
-      applySettings(defaultSiteSettings);
-
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("site_settings")
-          .select("*")
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          const merged = { ...defaultSiteSettings, ...data };
-          setSiteSettings(merged);
-          applySettings(merged);
-        }
-      } catch (error) {
-        console.error("loadSettings error:", error);
-        // Fall back to defaults silently
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadSettings();
   }, []);
 

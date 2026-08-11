@@ -49,10 +49,40 @@ const Footer = () => {
   ];
 
   const helpLinks = [
-    { label: "About Us", section: "features", type: "scroll" },
-    { label: "Contact Us", section: "contact", type: "scroll" },
-    { label: "WhatsApp Order", path: `https://wa.me/${siteSettings.whatsapp}`, type: "external" },
+    { label: "About Us", path: "/about", type: "route" },
+    { label: "FAQ", path: "/faq", type: "route" },
+    { label: "Services", section: "services", type: "scroll" },
+    {
+      label: "WhatsApp Order",
+      path: `https://wa.me/${siteSettings.whatsapp}`,
+      type: "external",
+    },
   ];
+
+  // Logo — responsive to any shape, no text beside it
+  const FooterLogo = () => {
+    if (!siteSettings.logo_url) {
+      return (
+        <span
+          className="font-black text-lg"
+          style={{ color: "var(--brand-1)" }}
+        >
+          {siteSettings.business_name}
+        </span>
+      );
+    }
+    return (
+      <img
+        src={siteSettings.logo_url}
+        alt={siteSettings.business_name}
+        className="h-10 w-auto object-contain"
+        style={{ maxWidth: "160px", maxHeight: "48px" }}
+        onError={(e) => {
+          e.target.style.display = "none";
+        }}
+      />
+    );
+  };
 
   return (
     <footer className="bg-gray-950 text-white">
@@ -64,20 +94,10 @@ const Footer = () => {
         <div className="sm:col-span-2 lg:col-span-1">
           <button
             onClick={() => goTo("/")}
-            className="flex items-center gap-3 mb-4"
+            className="flex items-start mb-4"
+            aria-label={`${siteSettings.business_name} — Home`}
           >
-            <img
-              src={siteSettings.logo_url}
-              alt={siteSettings.business_name}
-              className="h-10 w-auto object-contain"
-              onError={(e) => { e.target.style.display = "none"; }}
-            />
-            <span
-              className="font-black text-lg"
-              style={{ color: "var(--brand-1)" }}
-            >
-              {siteSettings.business_name}
-            </span>
+            <FooterLogo />
           </button>
           <p className="text-gray-400 text-sm leading-relaxed mb-6">
             {siteSettings.tagline}. Delivered across Nigeria.
@@ -176,19 +196,21 @@ const Footer = () => {
             Contact
           </h4>
           <ul className="flex flex-col gap-4">
-            <li>
-              <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                WhatsApp / Call
-              </p>
-              <a
-                href={`https://wa.me/${siteSettings.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-white text-sm font-medium hover:text-gray-300 transition-colors duration-200"
-              >
-                {siteSettings.phone}
-              </a>
-            </li>
+            {siteSettings.phone && (
+              <li>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                  WhatsApp / Call
+                </p>
+                <a
+                  href={`https://wa.me/${siteSettings.whatsapp}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-white text-sm font-medium hover:text-gray-300 transition-colors duration-200"
+                >
+                  {siteSettings.phone}
+                </a>
+              </li>
+            )}
             {siteSettings.email && (
               <li>
                 <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
@@ -230,9 +252,7 @@ const Footer = () => {
         <p className="text-gray-500 text-xs">
           © {currentYear} {siteSettings.business_name}. All rights reserved.
         </p>
-        <p className="text-gray-600 text-xs">
-          Fashion · Style · Nigeria
-        </p>
+        <p className="text-gray-600 text-xs">Fashion · Style · Nigeria</p>
         <p className="text-gray-600 text-xs">
           Built with ❤️ by{" "}
           <a

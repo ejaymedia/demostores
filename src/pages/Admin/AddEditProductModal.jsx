@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Plus, Minus, Upload, RefreshCw, Image } from "lucide-react";
-import { uploadFile } from "../../supabaseService";
+import { X, Plus, Minus, Upload, RefreshCw, Image, Trash2, GripVertical, Play } from "lucide-react";
+import { uploadFile, getCategories, addProduct, updateProduct } from "../../supabaseService";
 
 const genderOptions = ["men", "women", "kids"];
-const categoryOptions = ["clothing", "shoes", "bags", "accessories"];
-const tagOptions = ["Clothing", "Shoes", "Bags", "Accessories"];
 
 const sizePresets = {
   clothing: {
@@ -42,16 +40,22 @@ const emptyForm = {
   is_new_arrival: false,
   is_hot_deal: false,
   in_stock: true,
-  image_url: "",
+  media: [],
 };
 
 const AddEditProductModal = ({ product, onSave, onClose }) => {
   const [form, setForm] = useState(emptyForm);
+  const [categories, setCategories] = useState([]);
   const [colorInput, setColorInput] = useState("");
   const [errors, setErrors] = useState({});
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imagePreview, setImagePreview] = useState("");
-  const imageRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
+  const mediaInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (product) {
@@ -59,13 +63,17 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
         ...product,
         price: product.price?.toString() || "",
         sale_price: product.sale_price?.toString() || "",
+        media: product.media || [],
       });
-      setImagePreview(product.image_url || "");
     } else {
       setForm(emptyForm);
-      setImagePreview("");
     }
   }, [product]);
+
+  const fetchCategories = async () => {
+    const data = await getCategories();
+    setCategories(data);
+  };
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -73,24 +81,14 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
   };
 
   const handleGenderChange = (value) => {
-    setForm((prev) => ({
-      ...prev,
-      gender: value,
-      sizes: [],
-    }));
+    setForm((prev) => ({ ...prev, gender: value, sizes: [] }));
   };
 
   const handleCategoryChange = (value) => {
-    const tagMap = {
-      clothing: "Clothing",
-      shoes: "Shoes",
-      bags: "Bags",
-      accessories: "Accessories",
-    };
     setForm((prev) => ({
       ...prev,
       category: value,
-      tag: tagMap[value],
+      tag: value.charAt(0).toUpperCase() + value.slice(1),
       sizes: [],
     }));
   };
@@ -107,10 +105,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
   const handleAddColor = () => {
     const trimmed = colorInput.trim();
     if (trimmed && !form.colors.includes(trimmed)) {
-      setForm((prev) => ({
-        ...prev,
-        colors: [...prev.colors, trimmed],
-      }));
+      setForm((prev) => ({ ...prev, colors: [...prev.colors, trimmed] }));
       setColorInput("");
     }
   };
@@ -129,39 +124,107 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
     }
   };
 
-  const handleImageUpload = async (file) => {
-    if (!file) return;
+  // ── MEDIA UPLOAD ──────────────────────────────────────
 
-    // Show local preview immediately
-    const localUrl = URL.createObjectURL(file);
-    setImagePreview(localUrl);
+  const handleMediaUpload = async (files) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setErrors((prev) => ({ ...prev, media: "" }));
 
-    setUploadingImage(true);
-    setErrors((prev) => ({ ...prev, image_url: "" }));
+    const newMedia = [];
 
-    try {
-      const path = `products/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const url = await uploadFile("product-images", path, file);
+    for (const file of Array.from(files)) {
+      const isVideo = file.type.startsWith("video/");
+      const ext = file.name.split(".").pop();
+      const path = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${ext}`;
 
-      if (url) {
-        setForm((prev) => ({ ...prev, image_url: url }));
-        setImagePreview(url);
-      } else {
-        // Keep local preview but flag error
-        setForm((prev) => ({ ...prev, image_url: localUrl }));
-        setErrors((prev) => ({
-          ...prev,
-          image_url:
-            "Upload failed — image will only show locally until Supabase is connected.",
-        }));
-      }
-    } catch (err) {
-      console.error("Image upload error:", err);
-      setForm((prev) => ({ ...prev, image_url: localUrl }));
-    } finally {
-      setUploadingImage(false);
+      // Show local preview immediately
+      const localUrl = URL.createObjectURL(file);
+      const tempItem = {
+        url: localUrl,
+        type: isVideo ? "video" : "image",
+        order: form.media.length + newMedia.length,
+        uploading: true,
+      };
+      newMedia.push(tempItem);
     }
+
+    // Add temp items to form for immediate preview
+    setForm((prev) => ({
+      ...prev,
+      media: [...prev.media, ...newMedia],
+    }));
+
+    // Upload each file
+    const uploadedItems = [];
+    for (let i = 0; i < Array.from(files).length; i++) {
+      const file = Array.from(files)[i];
+      const isVideo = file.type.startsWith("video/");
+      const ext = file.name.split(".").pop();
+      const path = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${ext}`;
+
+      const url = await uploadFile("product-media", path, file);
+      uploadedItems.push({
+        url: url || URL.createObjectURL(file),
+        type: isVideo ? "video" : "image",
+        order: form.media.length + i,
+        uploading: false,
+      });
+    }
+
+    // Replace temp items with uploaded items
+    setForm((prev) => {
+      const withoutTemp = prev.media.filter((m) => !m.uploading);
+      return {
+        ...prev,
+        media: [...withoutTemp, ...uploadedItems],
+      };
+    });
+
+    setUploading(false);
   };
+
+  const handleRemoveMedia = (index) => {
+    setForm((prev) => {
+      const updated = prev.media
+        .filter((_, i) => i !== index)
+        .map((item, i) => ({ ...item, order: i }));
+      return { ...prev, media: updated };
+    });
+  };
+
+  // ── DRAG TO REORDER ───────────────────────────────────
+
+  const handleDragStart = (index) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) return;
+
+    setForm((prev) => {
+      const updated = [...prev.media];
+      const dragged = updated[dragIndex];
+      updated.splice(dragIndex, 1);
+      updated.splice(index, 0, dragged);
+      return {
+        ...prev,
+        media: updated.map((item, i) => ({ ...item, order: i })),
+      };
+    });
+    setDragIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+  };
+
+  // ── VALIDATION ────────────────────────────────────────
 
   const validate = () => {
     const newErrors = {};
@@ -176,8 +239,8 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
         Number(form.sale_price) >= Number(form.price))
     )
       newErrors.sale_price = "Sale price must be less than original price.";
-    if (!form.image_url)
-      newErrors.image_url = "Please upload a product image.";
+    if (form.media.filter((m) => !m.uploading).length === 0)
+      newErrors.media = "Please upload at least one image or video.";
     if (form.sizes.length === 0)
       newErrors.sizes = "Select at least one size.";
     if (form.colors.length === 0)
@@ -186,23 +249,46 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  // ── SAVE ──────────────────────────────────────────────
+
+  const handleSave = async () => {
     if (!validate()) return;
-    onSave({
+    setSaving(true);
+
+    const payload = {
       ...form,
       price: Number(form.price),
       sale_price: form.sale_price ? Number(form.sale_price) : null,
-    });
+      media: form.media
+        .filter((m) => !m.uploading)
+        .map((m, i) => ({ url: m.url, type: m.type, order: i })),
+      // Set image_url to first image for backwards compatibility
+      image_url:
+        form.media.find((m) => m.type === "image" && !m.uploading)?.url ||
+        "",
+    };
+
+    let result;
+    if (product) {
+      result = await updateProduct(product.id, payload);
+    } else {
+      result = await addProduct(payload);
+    }
+
+    if (result) {
+      onSave(result);
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        general: "Failed to save product. Please try again.",
+      }));
+    }
+
+    setSaving(false);
   };
 
   const currentSizes =
     sizePresets[form.category]?.[form.gender] || ["One Size"];
-
-  const inputClass =
-    "w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm placeholder-gray-400 px-4 py-3 rounded-xl outline-none focus:border-gray-400 transition-colors duration-200";
-
-  const labelClass =
-    "text-gray-500 text-xs font-bold uppercase tracking-widest block mb-2";
 
   const discountPercent =
     form.price &&
@@ -217,15 +303,23 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
         )
       : null;
 
+  const inputClass =
+    "w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm placeholder-gray-400 px-4 py-3 rounded-xl outline-none focus:border-gray-400 transition-colors duration-200";
+  const labelClass =
+    "text-gray-500 text-xs font-bold uppercase tracking-widest block mb-2";
+
+  const allCategories =
+    categories.length > 0
+      ? categories.map((c) => c.name.toLowerCase())
+      : ["clothing", "shoes", "bags", "accessories"];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="relative bg-white rounded-3xl w-full max-w-xl max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col">
 
         {/* Header */}
@@ -236,127 +330,160 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-700 transition-colors duration-200 p-1"
-            aria-label="Close"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Form */}
         <div className="px-6 py-5 flex flex-col gap-5">
 
-          {/* ── IMAGE UPLOAD ─────────────────────────── */}
+          {/* General error */}
+          {errors.general && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+              {errors.general}
+            </div>
+          )}
+
+          {/* ── MEDIA UPLOAD ─────────────────────────── */}
           <div>
             <label className={labelClass}>
-              Product Image *{" "}
-              {errors.image_url && (
+              Images & Videos *{" "}
+              {errors.media && (
                 <span className="text-red-500 normal-case font-normal ml-1">
-                  {errors.image_url}
+                  {errors.media}
                 </span>
               )}
             </label>
 
-            <div
-              onClick={() => !uploadingImage && imageRef.current?.click()}
-              className={`relative border-2 border-dashed rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer ${
-                errors.image_url
-                  ? "border-red-300 bg-red-50"
-                  : imagePreview
-                  ? "border-gray-200 bg-gray-50"
-                  : "border-gray-200 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-              }`}
-              style={{ minHeight: "180px" }}
-            >
-              {imagePreview ? (
-                /* Image Preview */
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Product preview"
-                    className="w-full h-48 object-cover"
-                  />
-                  {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2">
-                    <Upload size={20} className="text-white" />
-                    <span className="text-white text-xs font-semibold">
-                      Change Image
-                    </span>
-                  </div>
-                  {/* Uploading spinner */}
-                  {uploadingImage && (
-                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <RefreshCw
+            {/* Media Grid */}
+            {form.media.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                {form.media.map((item, index) => (
+                  <div
+                    key={index}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 cursor-grab active:cursor-grabbing ${
+                      dragIndex === index
+                        ? "border-blue-400 opacity-50 scale-95"
+                        : "border-gray-200 hover:border-gray-400"
+                    } ${index === 0 ? "ring-2 ring-offset-1" : ""}`}
+                    style={
+                      index === 0
+                        ? { ringColor: "var(--brand-1)" }
+                        : {}
+                    }
+                  >
+                    {/* Media preview */}
+                    {item.type === "video" ? (
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <Play
                           size={20}
+                          className="text-gray-500"
+                          fill="currentColor"
+                        />
+                      </div>
+                    ) : (
+                      <img
+                        src={item.url}
+                        alt={`Media ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
+                    {/* Uploading overlay */}
+                    {item.uploading && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <RefreshCw
+                          size={16}
                           className="animate-spin"
                           style={{ color: "var(--brand-1)" }}
                         />
-                        <span
-                          className="text-xs font-semibold"
-                          style={{ color: "var(--brand-1)" }}
-                        >
-                          Uploading...
-                        </span>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Cover label */}
+                    {index === 0 && (
+                      <div
+                        className="absolute bottom-0 left-0 right-0 py-0.5 text-center text-white text-xs font-bold"
+                        style={{ background: "var(--brand-1)" }}
+                      >
+                        Cover
+                      </div>
+                    )}
+
+                    {/* Drag handle + Delete — on hover */}
+                    {!item.uploading && (
+                      <>
+                        <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-black/50 rounded-md p-0.5">
+                            <GripVertical size={12} className="text-white" />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveMedia(index)}
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-md p-0.5"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload area */}
+            <div
+              onClick={() => !uploading && mediaInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all duration-200 ${
+                errors.media
+                  ? "border-red-300 bg-red-50"
+                  : "border-gray-200 bg-gray-50 hover:border-gray-400 hover:bg-gray-100 cursor-pointer"
+              }`}
+            >
+              {uploading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <RefreshCw
+                    size={20}
+                    className="animate-spin"
+                    style={{ color: "var(--brand-1)" }}
+                  />
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--brand-1)" }}
+                  >
+                    Uploading media...
+                  </p>
                 </div>
               ) : (
-                /* Empty state */
-                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                  {uploadingImage ? (
-                    <>
-                      <RefreshCw
-                        size={24}
-                        className="animate-spin mb-3"
-                        style={{ color: "var(--brand-1)" }}
-                      />
-                      <p
-                        className="text-sm font-semibold"
-                        style={{ color: "var(--brand-1)" }}
-                      >
-                        Uploading image...
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-12 h-12 rounded-2xl bg-gray-200 flex items-center justify-center mb-3">
-                        <Image size={20} className="text-gray-400" />
-                      </div>
-                      <p className="text-gray-600 text-sm font-semibold mb-1">
-                        Click to upload product image
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        PNG, JPG or WEBP · Max 5MB
-                      </p>
-                    </>
-                  )}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center">
+                    <Upload size={18} className="text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 text-sm font-semibold">
+                    Click to upload images or videos
+                  </p>
+                  <p className="text-gray-400 text-xs">
+                    PNG, JPG, WEBP, MP4 · Multiple files allowed
+                  </p>
+                  <p className="text-gray-400 text-xs">
+                    Drag thumbnails above to reorder · First item = cover
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Hidden file input */}
             <input
-              ref={imageRef}
+              ref={mediaInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,image/webp,video/mp4,video/webm"
+              multiple
               className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleImageUpload(file);
-              }}
+              onChange={(e) => handleMediaUpload(e.target.files)}
             />
-
-            {/* Upload button if image already set */}
-            {imagePreview && !uploadingImage && (
-              <button
-                onClick={() => imageRef.current?.click()}
-                className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors duration-200"
-              >
-                <Upload size={12} />
-                Replace image
-              </button>
-            )}
           </div>
 
           {/* ── NAME ─────────────────────────────────── */}
@@ -397,7 +524,7 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
                 onChange={(e) => handleCategoryChange(e.target.value)}
                 className={inputClass}
               >
-                {categoryOptions.map((c) => (
+                {allCategories.map((c) => (
                   <option key={c} value={c}>
                     {c.charAt(0).toUpperCase() + c.slice(1)}
                   </option>
@@ -410,27 +537,31 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
           <div>
             <label className={labelClass}>Tag *</label>
             <div className="flex flex-wrap gap-2">
-              {tagOptions.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => handleChange("tag", tag)}
-                  className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
-                    form.tag === tag
-                      ? "text-white border-current"
-                      : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400"
-                  }`}
-                  style={
-                    form.tag === tag
-                      ? {
-                          background: "var(--brand-1)",
-                          borderColor: "var(--brand-1)",
-                        }
-                      : {}
-                  }
-                >
-                  {tag}
-                </button>
-              ))}
+              {allCategories.map((cat) => {
+                const tag =
+                  cat.charAt(0).toUpperCase() + cat.slice(1);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => handleChange("tag", tag)}
+                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
+                      form.tag === tag
+                        ? "text-white border-current"
+                        : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400"
+                    }`}
+                    style={
+                      form.tag === tag
+                        ? {
+                            background: "var(--brand-1)",
+                            borderColor: "var(--brand-1)",
+                          }
+                        : {}
+                    }
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -445,7 +576,9 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
               className={`${inputClass} resize-none`}
             />
             {errors.description && (
-              <p className="text-red-500 text-xs mt-1">{errors.description}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.description}
+              </p>
             )}
           </div>
 
@@ -470,7 +603,9 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
               <input
                 type="number"
                 value={form.sale_price}
-                onChange={(e) => handleChange("sale_price", e.target.value)}
+                onChange={(e) =>
+                  handleChange("sale_price", e.target.value)
+                }
                 placeholder="Leave blank if no sale"
                 className={inputClass}
                 min={0}
@@ -603,17 +738,23 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
                   <p className="text-gray-900 text-xs font-semibold truncate">
                     {toggle.label}
                   </p>
-                  <p className="text-gray-400 text-xs truncate">{toggle.sub}</p>
+                  <p className="text-gray-400 text-xs truncate">
+                    {toggle.sub}
+                  </p>
                 </div>
                 <button
-                  onClick={() => handleChange(toggle.key, !form[toggle.key])}
+                  onClick={() =>
+                    handleChange(toggle.key, !form[toggle.key])
+                  }
                   className={`relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0 ${
                     form[toggle.key] ? toggle.activeColor : "bg-gray-300"
                   }`}
                 >
                   <span
                     className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                      form[toggle.key] ? "translate-x-5" : "translate-x-0.5"
+                      form[toggle.key]
+                        ? "translate-x-5"
+                        : "translate-x-0.5"
                     }`}
                   />
                 </button>
@@ -632,15 +773,25 @@ const AddEditProductModal = ({ product, onSave, onClose }) => {
           </button>
           <button
             onClick={handleSave}
-            disabled={uploadingImage}
-            className="flex-1 text-white text-sm font-semibold py-3.5 rounded-xl transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving || uploading}
+            className="flex-1 text-white text-sm font-semibold py-3.5 rounded-xl transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
             style={{ background: "var(--brand-1)" }}
           >
-            {uploadingImage
-              ? "Uploading..."
-              : product
-              ? "Save Changes"
-              : "Add Product"}
+            {saving ? (
+              <>
+                <RefreshCw size={14} className="animate-spin" />
+                Saving...
+              </>
+            ) : uploading ? (
+              <>
+                <RefreshCw size={14} className="animate-spin" />
+                Uploading...
+              </>
+            ) : product ? (
+              "Save Changes"
+            ) : (
+              "Add Product"
+            )}
           </button>
         </div>
       </div>
