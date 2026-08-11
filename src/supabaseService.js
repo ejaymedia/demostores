@@ -18,9 +18,23 @@ export const getSiteSettings = async () => {
 
 export const updateSiteSettings = async (settings) => {
   try {
+    // Strip out any columns that no longer exist in the table
+    const {
+      og_image_url,
+      og_url,
+      og_title,
+      og_description,
+      og_site_name,
+      og_type,
+      ...safeSettings
+    } = settings;
+
     const { data, error } = await supabase
       .from("site_settings")
-      .upsert({ ...settings, updated_at: new Date().toISOString() })
+      .upsert({
+        ...safeSettings,
+        updated_at: new Date().toISOString(),
+      })
       .select()
       .single();
     if (error) throw error;
@@ -80,10 +94,7 @@ export const updateCategory = async (id, name) => {
 
 export const deleteCategory = async (id) => {
   try {
-    const { error } = await supabase
-      .from("categories")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("categories").delete().eq("id", id);
     if (error) throw error;
     return true;
   } catch (error) {
@@ -104,36 +115,20 @@ export const getProducts = async ({
 } = {}) => {
   try {
     let query = supabase.from("products").select("*");
-
-    if (gender && gender !== "all") {
-      query = query.eq("gender", gender);
-    }
-    if (category && category !== "all") {
-      query = query.eq("category", category);
-    }
-    if (showOnly === "hotDeal") {
-      query = query.eq("is_hot_deal", true);
-    } else if (showOnly === "newArrival") {
-      query = query.eq("is_new_arrival", true);
-    } else if (showOnly === "onSale") {
-      query = query.not("sale_price", "is", null);
-    }
-    if (search && search.trim()) {
+    if (gender && gender !== "all") query = query.eq("gender", gender);
+    if (category && category !== "all") query = query.eq("category", category);
+    if (showOnly === "hotDeal") query = query.eq("is_hot_deal", true);
+    else if (showOnly === "newArrival") query = query.eq("is_new_arrival", true);
+    else if (showOnly === "onSale") query = query.not("sale_price", "is", null);
+    if (search?.trim()) {
       query = query.or(
         `name.ilike.%${search}%,description.ilike.%${search}%,category.ilike.%${search}%`
       );
     }
-    if (priceMax) {
-      query = query.lte("price", priceMax);
-    }
-    if (sort === "price_asc") {
-      query = query.order("price", { ascending: true });
-    } else if (sort === "price_desc") {
-      query = query.order("price", { ascending: false });
-    } else {
-      query = query.order("created_at", { ascending: false });
-    }
-
+    if (priceMax) query = query.lte("price", priceMax);
+    if (sort === "price_asc") query = query.order("price", { ascending: true });
+    else if (sort === "price_desc") query = query.order("price", { ascending: false });
+    else query = query.order("created_at", { ascending: false });
     const { data, error } = await query;
     if (error) throw error;
     return data;
@@ -158,7 +153,7 @@ export const getProductById = async (id) => {
   }
 };
 
-export const getHotDeals = async (limit = 8) => {
+export const getHotDeals = async (limit = 20) => {
   try {
     const { data, error } = await supabase
       .from("products")
@@ -208,10 +203,7 @@ export const updateProduct = async (id, updates) => {
 
 export const deleteProduct = async (id) => {
   try {
-    const { error } = await supabase
-      .from("products")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) throw error;
     return true;
   } catch (error) {
@@ -219,8 +211,6 @@ export const deleteProduct = async (id) => {
     return false;
   }
 };
-
-// ── ENQUIRIES ─────────────────────────────────────────
 
 export const addEnquiry = async (enquiry) => {
   try {
@@ -241,7 +231,7 @@ export const addEnquiry = async (enquiry) => {
 
 export const uploadFile = async (bucket, path, file) => {
   try {
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucket)
       .upload(path, file, { upsert: true });
     if (error) throw error;
@@ -255,15 +245,28 @@ export const uploadFile = async (bucket, path, file) => {
   }
 };
 
-export const deleteFile = async (bucket, path) => {
+// Extract storage path from a public URL
+export const getStoragePath = (url, bucket) => {
   try {
-    const { error } = await supabase.storage
-      .from(bucket)
-      .remove([path]);
+    if (!url) return null;
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.slice(idx + marker.length).split("?")[0];
+  } catch {
+    return null;
+  }
+};
+
+export const deleteStorageFile = async (bucket, url) => {
+  try {
+    const path = getStoragePath(url, bucket);
+    if (!path) return false;
+    const { error } = await supabase.storage.from(bucket).remove([path]);
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error("deleteFile error:", error);
+    console.error("deleteStorageFile error:", error);
     return false;
   }
 };

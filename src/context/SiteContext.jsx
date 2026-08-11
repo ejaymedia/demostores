@@ -10,14 +10,18 @@ export const SiteProvider = ({ children }) => {
 
   const applySettings = (settings) => {
     // ── CSS Variables ─────────────────────────────────
-    document.documentElement.style.setProperty(
-      "--brand-1",
-      settings.brand_color_1 || defaultSiteSettings.brand_color_1
-    );
-    document.documentElement.style.setProperty(
-      "--brand-2",
-      settings.brand_color_2 || defaultSiteSettings.brand_color_2
-    );
+    if (settings.brand_color_1) {
+      document.documentElement.style.setProperty(
+        "--brand-1",
+        settings.brand_color_1
+      );
+    }
+    if (settings.brand_color_2) {
+      document.documentElement.style.setProperty(
+        "--brand-2",
+        settings.brand_color_2
+      );
+    }
 
     // ── Page Title ────────────────────────────────────
     if (settings.site_title) {
@@ -26,51 +30,61 @@ export const SiteProvider = ({ children }) => {
 
     // ── Favicon ───────────────────────────────────────
     if (settings.favicon_url) {
-      let favicon = document.getElementById("favicon");
-      if (!favicon) {
-        favicon = document.createElement("link");
-        favicon.id = "favicon";
-        favicon.rel = "icon";
-        favicon.type = "image/png";
-        document.head.appendChild(favicon);
+      let link = document.getElementById("favicon");
+      if (!link) {
+        link = document.createElement("link");
+        link.id = "favicon";
+        link.rel = "icon";
+        link.type = "image/png";
+        document.head.appendChild(link);
       }
-      // Force browser to reload favicon by appending cache-buster
-      favicon.href = `${settings.favicon_url}?t=${Date.now()}`;
+      link.href = `${settings.favicon_url}?t=${Date.now()}`;
     }
 
     // ── Theme Color ───────────────────────────────────
-    const themeColor = document.getElementById("meta-theme-color");
-    if (themeColor && settings.brand_color_1) {
+    let themeColor = document.getElementById("meta-theme-color");
+    if (!themeColor) {
+      themeColor = document.createElement("meta");
+      themeColor.id = "meta-theme-color";
+      themeColor.name = "theme-color";
+      document.head.appendChild(themeColor);
+    }
+    if (settings.brand_color_1) {
       themeColor.content = settings.brand_color_1;
     }
 
     // ── Meta Description ──────────────────────────────
-    const metaDesc = document.getElementById("meta-description");
-    if (metaDesc && settings.tagline) {
+    let metaDesc = document.getElementById("meta-description");
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.id = "meta-description";
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    if (settings.tagline) {
       metaDesc.content = settings.tagline;
     }
 
     // ── Open Graph ────────────────────────────────────
-    const ogTitle = document.getElementById("og-title");
-    if (ogTitle && settings.site_title) {
-      ogTitle.content = settings.site_title;
-    }
+    const setMeta = (id, property, content) => {
+      if (!content) return;
+      let el = document.getElementById(id);
+      if (!el) {
+        el = document.createElement("meta");
+        el.id = id;
+        el.setAttribute("property", property);
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    };
 
-    const ogDesc = document.getElementById("og-description");
-    if (ogDesc && settings.tagline) {
-      ogDesc.content = settings.tagline;
-    }
-
-    const ogSiteName = document.getElementById("og-site-name");
-    if (ogSiteName && settings.business_name) {
-      ogSiteName.content = settings.business_name;
-    }
+    setMeta("og-title", "og:title", settings.site_title);
+    setMeta("og-description", "og:description", settings.tagline);
+    setMeta("og-site-name", "og:site_name", settings.business_name);
+    setMeta("og-type", "og:type", "website");
   };
 
-  const loadSettings = async () => {
-    // Apply defaults first (colours + title only, no images)
-    applySettings(defaultSiteSettings);
-
+  const fetchAndApply = async () => {
     if (!supabase) {
       setLoading(false);
       return;
@@ -85,41 +99,27 @@ export const SiteProvider = ({ children }) => {
       if (error) throw error;
 
       if (data) {
-        // Supabase values always win — no merging with defaults for image fields
-        const merged = {
-          ...defaultSiteSettings,
-          ...data,
-        };
+        // Supabase data wins over defaults for everything
+        const merged = { ...defaultSiteSettings, ...data };
         setSiteSettings(merged);
         applySettings(merged);
       }
     } catch (error) {
-      console.error("loadSettings error:", error);
+      console.error("fetchAndApply error:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadSettings();
+    // Apply default colours immediately so page doesn't flash unstyled
+    applySettings(defaultSiteSettings);
+    // Then fetch real settings from Supabase
+    fetchAndApply();
   }, []);
 
   const refreshSettings = async () => {
-    if (!supabase) return;
-    try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*")
-        .single();
-      if (error) throw error;
-      if (data) {
-        const merged = { ...defaultSiteSettings, ...data };
-        setSiteSettings(merged);
-        applySettings(merged);
-      }
-    } catch (error) {
-      console.error("refreshSettings error:", error);
-    }
+    await fetchAndApply();
   };
 
   return (

@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Save, Upload, RefreshCw } from "lucide-react";
+import { Save, Upload, RefreshCw, Trash2 } from "lucide-react";
 import { useSite } from "../../context/SiteContext";
-import { updateSiteSettings, uploadFile } from "../../supabaseService";
+import {
+  updateSiteSettings,
+  uploadFile,
+  deleteStorageFile,
+} from "../../supabaseService";
+
+const BUCKET = "brand-assets";
 
 const SiteSettings = () => {
   const { siteSettings, refreshSettings } = useSite();
@@ -10,6 +16,14 @@ const SiteSettings = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState({
+    logo: false,
+    hero: false,
+    favicon: false,
+    men: false,
+    women: false,
+    kids: false,
+  });
+  const [deleting, setDeleting] = useState({
     logo: false,
     hero: false,
     favicon: false,
@@ -37,16 +51,27 @@ const SiteSettings = () => {
     setError("");
   };
 
-  const handleUpload = async (file, bucket, pathPrefix, field, key) => {
+  const handleUpload = async (file, pathPrefix, field, key) => {
     if (!file) return;
+
+    // Store old URL before uploading new one
+    const oldUrl = form[field];
+
     setUploading((prev) => ({ ...prev, [key]: true }));
     setError("");
+
     try {
       const ext = file.name.split(".").pop();
       const path = `${pathPrefix}/${Date.now()}.${ext}`;
-      const url = await uploadFile(bucket, path, file);
+      const url = await uploadFile(BUCKET, path, file);
+
       if (url) {
         setForm((prev) => ({ ...prev, [field]: url }));
+
+        // Auto-delete old image from storage if it existed
+        if (oldUrl) {
+          await deleteStorageFile(BUCKET, oldUrl);
+        }
       } else {
         setError("Upload failed. Please try again.");
       }
@@ -54,6 +79,23 @@ const SiteSettings = () => {
       setError(`Upload error: ${err.message}`);
     } finally {
       setUploading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleDeleteImage = async (field, key) => {
+    const url = form[field];
+    if (!url) return;
+
+    setDeleting((prev) => ({ ...prev, [key]: true }));
+    setError("");
+
+    try {
+      await deleteStorageFile(BUCKET, url);
+      setForm((prev) => ({ ...prev, [field]: "" }));
+    } catch (err) {
+      setError(`Delete error: ${err.message}`);
+    } finally {
+      setDeleting((prev) => ({ ...prev, [key]: false }));
     }
   };
 
@@ -66,9 +108,11 @@ const SiteSettings = () => {
       setError("Site title is required.");
       return;
     }
+
     setSaving(true);
     setError("");
     setSuccess(false);
+
     try {
       const saved = await updateSiteSettings(form);
       if (saved) {
@@ -85,83 +129,118 @@ const SiteSettings = () => {
   };
 
   const isAnyUploading = Object.values(uploading).some(Boolean);
+  const isAnyDeleting = Object.values(deleting).some(Boolean);
 
   const inputClass =
     "w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm placeholder-gray-400 px-4 py-3 rounded-xl outline-none focus:border-gray-400 transition-colors duration-200";
   const labelClass =
     "text-gray-500 text-xs font-bold uppercase tracking-widest block mb-2";
 
+  // ── Reusable image upload + delete field ──────────────
   const ImageUploadField = ({
     label,
     fieldKey,
     field,
-    bucket,
     pathPrefix,
     isSquare = false,
     accept = "image/*",
     note,
-  }) => (
-    <div className="flex items-start gap-4">
-      {/* Preview */}
-      <div
-        className={`shrink-0 bg-gray-100 border border-gray-200 rounded-xl overflow-hidden flex items-center justify-center ${
-          isSquare ? "w-16 h-16" : "w-28 h-16"
-        }`}
-      >
-        {form[field] ? (
-          <img
-            src={form[field]}
-            alt={label}
-            className="w-full h-full object-contain p-1"
-            onError={(e) => {
-              e.target.style.display = "none";
+    previewContain = true,
+  }) => {
+    const hasImage = Boolean(form[field]);
+    const isUploading = uploading[fieldKey];
+    const isDeleting = deleting[fieldKey];
+    const isBusy = isUploading || isDeleting;
+
+    return (
+      <div className="flex items-start gap-4">
+        {/* Preview */}
+        <div
+          className={`shrink-0 bg-gray-100 border border-gray-200 rounded-xl overflow-hidden flex items-center justify-center ${
+            isSquare ? "w-16 h-16" : "w-28 h-16"
+          }`}
+        >
+          {hasImage ? (
+            <img
+              src={form[field]}
+              alt={label}
+              className={`w-full h-full ${
+                previewContain ? "object-contain p-1" : "object-cover"
+              }`}
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          ) : (
+            <span className="text-gray-300 text-xs text-center px-2">
+              No image
+            </span>
+          )}
+        </div>
+
+        {/* Info + Buttons */}
+        <div className="flex-1 min-w-0">
+          <p className="text-gray-900 text-sm font-semibold mb-1">{label}</p>
+          {note && (
+            <p className="text-gray-400 text-xs mb-2 leading-relaxed">
+              {note}
+            </p>
+          )}
+
+          <input
+            ref={refs[fieldKey]}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUpload(file, pathPrefix, field, fieldKey);
+              // Reset input so same file can be re-uploaded if needed
+              e.target.value = "";
             }}
           />
-        ) : (
-          <span className="text-gray-300 text-xs text-center px-2">
-            No image
-          </span>
-        )}
-      </div>
 
-      {/* Info + Upload */}
-      <div className="flex-1 min-w-0">
-        <p className="text-gray-900 text-sm font-semibold mb-1">{label}</p>
-        {note && (
-          <p className="text-gray-400 text-xs mb-2 leading-relaxed">
-            {note}
-          </p>
-        )}
-        <input
-          ref={refs[fieldKey]}
-          type="file"
-          accept={accept}
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleUpload(file, bucket, pathPrefix, field, fieldKey);
-          }}
-        />
-        <button
-          onClick={() => refs[fieldKey].current?.click()}
-          disabled={uploading[fieldKey]}
-          className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200 disabled:opacity-50"
-        >
-          {uploading[fieldKey] ? (
-            <RefreshCw size={12} className="animate-spin" />
-          ) : (
-            <Upload size={12} />
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Upload button */}
+            <button
+              onClick={() => refs[fieldKey].current?.click()}
+              disabled={isBusy}
+              className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200 disabled:opacity-50"
+            >
+              {isUploading ? (
+                <RefreshCw size={12} className="animate-spin" />
+              ) : (
+                <Upload size={12} />
+              )}
+              {isUploading ? "Uploading..." : hasImage ? "Replace" : "Upload"}
+            </button>
+
+            {/* Delete button — only shown when image exists */}
+            {hasImage && (
+              <button
+                onClick={() => handleDeleteImage(field, fieldKey)}
+                disabled={isBusy}
+                className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <RefreshCw size={12} className="animate-spin" />
+                ) : (
+                  <Trash2 size={12} />
+                )}
+                {isDeleting ? "Deleting..." : "Remove"}
+              </button>
+            )}
+          </div>
+
+          {hasImage && !isUploading && (
+            <p className="text-green-600 text-xs mt-1.5 font-medium">
+              ✓ Image set
+            </p>
           )}
-          {uploading[fieldKey] ? "Uploading..." : "Upload"}
-        </button>
-        {form[field] && (
-          <p className="text-gray-400 text-xs mt-1.5 truncate max-w-xs">
-            ✓ Image uploaded
-          </p>
-        )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-2xl">
@@ -323,9 +402,7 @@ const SiteSettings = () => {
                 </div>
                 <div
                   className="h-8 rounded-xl"
-                  style={{
-                    background: form[color.key] || color.default,
-                  }}
+                  style={{ background: form[color.key] || color.default }}
                 />
               </div>
             ))}
@@ -353,9 +430,7 @@ const SiteSettings = () => {
               label="Logo"
               fieldKey="logo"
               field="logo_url"
-              bucket="brand-assets"
               pathPrefix="logo"
-              isSquare={false}
               note="Displayed in the navbar, footer, and admin panel. Supports any shape — square, circular, or wide rectangular."
             />
             <div className="border-t border-gray-100" />
@@ -363,7 +438,6 @@ const SiteSettings = () => {
               label="Favicon"
               fieldKey="favicon"
               field="favicon_url"
-              bucket="brand-assets"
               pathPrefix="favicon"
               accept="image/png,image/x-icon,image/svg+xml"
               isSquare
@@ -381,8 +455,8 @@ const SiteSettings = () => {
             label="Hero Image"
             fieldKey="hero"
             field="hero_url"
-            bucket="brand-assets"
             pathPrefix="hero"
+            previewContain={false}
             note="Full-screen background on the homepage hero. Use a high-quality landscape image."
           />
           {form.hero_url && (
@@ -418,8 +492,8 @@ const SiteSettings = () => {
               label="Men's Image"
               fieldKey="men"
               field="men_image_url"
-              bucket="brand-assets"
               pathPrefix="genders"
+              previewContain={false}
               note="Shown on the Men gender card"
             />
             <div className="border-t border-gray-100" />
@@ -427,8 +501,8 @@ const SiteSettings = () => {
               label="Women's Image"
               fieldKey="women"
               field="women_image_url"
-              bucket="brand-assets"
               pathPrefix="genders"
+              previewContain={false}
               note="Shown on the Women gender card"
             />
             <div className="border-t border-gray-100" />
@@ -436,8 +510,8 @@ const SiteSettings = () => {
               label="Kids' Image"
               fieldKey="kids"
               field="kids_image_url"
-              bucket="brand-assets"
               pathPrefix="genders"
+              previewContain={false}
               note="Shown on the Kids gender card"
             />
           </div>
@@ -446,7 +520,7 @@ const SiteSettings = () => {
         {/* ── SAVE BUTTON ────────────────────────────── */}
         <button
           onClick={handleSave}
-          disabled={saving || isAnyUploading}
+          disabled={saving || isAnyUploading || isAnyDeleting}
           className="w-full inline-flex items-center justify-center gap-2 text-white text-sm font-semibold py-4 rounded-2xl transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: "var(--brand-1)" }}
         >
@@ -460,6 +534,11 @@ const SiteSettings = () => {
               <RefreshCw size={16} className="animate-spin" />
               Waiting for uploads...
             </>
+          ) : isAnyDeleting ? (
+            <>
+              <RefreshCw size={16} className="animate-spin" />
+              Deleting image...
+            </>
           ) : (
             <>
               <Save size={16} />
@@ -468,7 +547,7 @@ const SiteSettings = () => {
           )}
         </button>
 
-        {/* ── CONFIRMATION / ERROR — always at bottom ── */}
+        {/* ── FEEDBACK ───────────────────────────────── */}
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-5 py-4 rounded-2xl flex items-center gap-3">
             <span className="text-lg shrink-0">✅</span>
