@@ -40,26 +40,7 @@ const Footer = () => {
     }
   };
 
-  const shopLinks = [
-    { label: "Men", path: "/shop/men", type: "route" },
-    { label: "Women", path: "/shop/women", type: "route" },
-    { label: "Kids", path: "/shop/kids", type: "route" },
-    { label: "New Arrivals", path: "/shop/men", type: "route" },
-    { label: "Sale", path: "/shop/men", type: "route" },
-  ];
-
-  const helpLinks = [
-    { label: "About Us", path: "/about", type: "route" },
-    { label: "FAQ", path: "/faq", type: "route" },
-    { label: "Services", section: "services", type: "scroll" },
-    {
-      label: "WhatsApp Order",
-      path: `https://wa.me/${siteSettings.whatsapp}`,
-      type: "external",
-    },
-  ];
-
-  // Logo — responsive to any shape, no text beside it
+  // Logo — no text beside it
   const FooterLogo = () => {
     if (!siteSettings.logo_url) {
       return (
@@ -77,194 +58,196 @@ const Footer = () => {
         alt={siteSettings.business_name}
         className="h-10 w-auto object-contain"
         style={{ maxWidth: "160px", maxHeight: "48px" }}
-        onError={(e) => {
-          e.target.style.display = "none";
-        }}
+        onError={(e) => { e.target.style.display = "none"; }}
       />
     );
   };
 
   return (
-    <footer className="bg-gray-950 text-white">
+    <footer style={{ background: "var(--brand-footer)" }} className="text-white">
 
       {/* Main Footer */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-12">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-10">
 
-        {/* Brand */}
-        <div className="sm:col-span-2 lg:col-span-1">
-          <button
-            onClick={() => goTo("/")}
-            className="flex items-start mb-4"
-            aria-label={`${siteSettings.business_name} — Home`}
-          >
-            <FooterLogo />
-          </button>
-          <p className="text-gray-400 text-sm leading-relaxed mb-6">
-            {siteSettings.tagline}. Delivered across Nigeria.
-          </p>
-          {/* Socials */}
-          <div className="flex items-center gap-3">
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Instagram"
-              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-all duration-200"
+          {/* Brand — full width on mobile */}
+          <div className="col-span-2 sm:col-span-1">
+            <button
+              onClick={() => goTo("/")}
+              className="flex items-start mb-4"
+              aria-label={`${siteSettings.business_name} — Home`}
             >
-              <FaInstagram size={15} />
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Facebook"
-              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-all duration-200"
-            >
-              <FaFacebookF size={15} />
-            </a>
-            <a
-              href={`https://wa.me/${siteSettings.whatsapp}`}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="WhatsApp"
-              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-all duration-200"
-            >
-              <FaWhatsapp size={15} />
-            </a>
+              <FooterLogo />
+            </button>
+            <p className="text-white/50 text-sm leading-relaxed mb-5 max-w-xs">
+              {siteSettings.tagline}. Delivered across Nigeria.
+            </p>
+            {/* Socials */}
+            <div className="flex items-center gap-3">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all duration-200"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              >
+                <FaInstagram size={15} />
+              </a>
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Facebook"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all duration-200"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              >
+                <FaFacebookF size={15} />
+              </a>
+              <a
+                href={`https://wa.me/${siteSettings.whatsapp}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all duration-200"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              >
+                <FaWhatsapp size={15} />
+              </a>
+            </div>
           </div>
-        </div>
 
-        {/* Shop Links */}
-        <div>
-          <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">
-            Shop
-          </h4>
-          <ul className="flex flex-col gap-3">
-            {shopLinks.map((link) => (
-              <li key={link.label}>
-                <button
-                  onClick={() => goTo(link.path)}
-                  className="text-gray-400 text-sm hover:text-white transition-colors duration-200 text-left"
-                >
-                  {link.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Help Links */}
-        <div>
-          <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">
-            Help
-          </h4>
-          <ul className="flex flex-col gap-3">
-            {helpLinks.map((link) => (
-              <li key={link.label}>
-                {link.type === "scroll" ? (
+          {/* Shop Links */}
+          <div>
+            <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-4">
+              Shop
+            </h4>
+            <ul className="flex flex-col gap-2.5">
+              {[
+                { label: "Men", action: () => goTo("/shop/men") },
+                { label: "Women", action: () => goTo("/shop/women") },
+                { label: "Kids", action: () => goTo("/shop/kids") },
+                { label: "New Arrivals", action: () => goTo("/shop/men") },
+                { label: "Sale", action: () => goTo("/shop/men") },
+              ].map((link) => (
+                <li key={link.label}>
                   <button
-                    onClick={() => scrollToSection(link.section)}
-                    className="text-gray-400 text-sm hover:text-white transition-colors duration-200 text-left"
+                    onClick={link.action}
+                    className="text-white/50 text-sm hover:text-white transition-colors duration-200 text-left"
                   >
                     {link.label}
                   </button>
-                ) : link.type === "external" ? (
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Help Links */}
+          <div>
+            <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-4">
+              Help
+            </h4>
+            <ul className="flex flex-col gap-2.5">
+              {[
+                { label: "About Us", action: () => goTo("/about") },
+                { label: "FAQ", action: () => goTo("/faq") },
+                { label: "Services", action: () => scrollToSection("services") },
+                {
+                  label: "WhatsApp Order",
+                  action: () =>
+                    window.open(
+                      `https://wa.me/${siteSettings.whatsapp}`,
+                      "_blank"
+                    ),
+                },
+              ].map((link) => (
+                <li key={link.label}>
+                  <button
+                    onClick={link.action}
+                    className="text-white/50 text-sm hover:text-white transition-colors duration-200 text-left"
+                  >
+                    {link.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-4">
+              Contact
+            </h4>
+            <ul className="flex flex-col gap-3.5">
+              {siteSettings.phone && (
+                <li>
+                  <p className="text-white/30 text-xs uppercase tracking-wider mb-1">
+                    Phone / WhatsApp
+                  </p>
                   <a
-                    href={link.path}
+                    href={`https://wa.me/${siteSettings.whatsapp}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-gray-400 text-sm hover:text-white transition-colors duration-200"
+                    className="text-white/70 text-sm hover:text-white transition-colors duration-200"
                   >
-                    {link.label}
+                    {siteSettings.phone}
                   </a>
-                ) : (
-                  <button
-                    onClick={() => goTo(link.path)}
-                    className="text-gray-400 text-sm hover:text-white transition-colors duration-200 text-left"
+                </li>
+              )}
+              {siteSettings.email && (
+                <li>
+                  <p className="text-white/30 text-xs uppercase tracking-wider mb-1">
+                    Email
+                  </p>
+                  <a
+                    href={`mailto:${siteSettings.email}`}
+                    className="text-white/70 text-sm hover:text-white transition-colors duration-200"
                   >
-                    {link.label}
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div>
-          <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">
-            Contact
-          </h4>
-          <ul className="flex flex-col gap-4">
-            {siteSettings.phone && (
-              <li>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                  WhatsApp / Call
-                </p>
-                <a
-                  href={`https://wa.me/${siteSettings.whatsapp}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-white text-sm font-medium hover:text-gray-300 transition-colors duration-200"
-                >
-                  {siteSettings.phone}
-                </a>
-              </li>
-            )}
-            {siteSettings.email && (
-              <li>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                  Email
-                </p>
-                <a
-                  href={`mailto:${siteSettings.email}`}
-                  className="text-white text-sm font-medium hover:text-gray-300 transition-colors duration-200"
-                >
-                  {siteSettings.email}
-                </a>
-              </li>
-            )}
-            {siteSettings.address && (
-              <li>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                  Address
-                </p>
-                <p className="text-white text-sm font-medium">
-                  {siteSettings.address}
-                </p>
-              </li>
-            )}
-          </ul>
+                    {siteSettings.email}
+                  </a>
+                </li>
+              )}
+              {siteSettings.address && (
+                <li>
+                  <p className="text-white/30 text-xs uppercase tracking-wider mb-1">
+                    Address
+                  </p>
+                  <p className="text-white/70 text-sm">
+                    {siteSettings.address}
+                  </p>
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
       </div>
 
-      {/* Brand colour divider */}
+      {/* Divider — uses brand primary colour */}
       <div
-        className="h-px w-full"
-        style={{
-          background:
-            "linear-gradient(90deg, var(--brand-1), var(--brand-2))",
-        }}
+        className="h-px w-full opacity-20"
+        style={{ background: "var(--brand-1)" }}
       />
 
-      {/* Bottom Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p className="text-gray-500 text-xs">
-          © {currentYear} {siteSettings.business_name}. All rights reserved.
-        </p>
-        <p className="text-gray-600 text-xs">Fashion · Style · Nigeria</p>
-        <p className="text-gray-600 text-xs">
-          Built with ❤️ by{" "}
-          <a
-            href="https://elijah.is-a.dev"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-white transition-colors duration-200"
-            style={{ color: "var(--brand-1)" }}
-          >
-            Ejay
-          </a>
-        </p>
+      {/* Bottom bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-white/30 text-xs">
+            © {currentYear} {siteSettings.business_name}. All rights reserved.
+          </p>
+          <p className="text-white/30 text-xs">Fashion · Style · Nigeria</p>
+          <p className="text-white/30 text-xs">
+            Built with ❤️ by{" "}
+            <a
+              href="https://elijah.is-a.dev"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-white transition-colors duration-200"
+              style={{ color: "var(--brand-1)" }}
+            >
+              Ejay
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );

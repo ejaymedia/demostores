@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Package,
@@ -68,15 +69,15 @@ const AdminDashboard = () => {
   const statCards = [
     { label: "Total Products", value: stats.total, color: "var(--brand-1)" },
     { label: "Men's Items", value: stats.men, color: "var(--brand-1)" },
-    { label: "Women's Items", value: stats.women, color: "var(--brand-2)" },
-    { label: "Kids' Items", value: stats.kids, color: "var(--brand-2)" },
+    { label: "Women's Items", value: stats.women, color: "var(--brand-shade-dark)" },
+    { label: "Kids' Items", value: stats.kids, color: "var(--brand-shade-dark)" },
     { label: "Hot Deals", value: stats.hotDeals, color: "#d97706" },
     { label: "New Arrivals", value: stats.newArrivals, color: "#16a34a" },
     { label: "On Sale", value: stats.onSale, color: "#dc2626" },
     { label: "Out of Stock", value: stats.outOfStock, color: "#64748b" },
   ];
 
-  // Logo — responsive, no text beside it
+  // Logo — no link, just display
   const SidebarLogo = () => {
     if (!siteSettings.logo_url) {
       return (
@@ -93,10 +94,8 @@ const AdminDashboard = () => {
         src={siteSettings.logo_url}
         alt={siteSettings.business_name}
         className="h-7 w-auto object-contain"
-        style={{ maxWidth: "100px", maxHeight: "28px" }}
-        onError={(e) => {
-          e.target.style.display = "none";
-        }}
+        style={{ maxWidth: "110px", maxHeight: "28px" }}
+        onError={(e) => { e.target.style.display = "none"; }}
       />
     );
   };
@@ -110,15 +109,14 @@ const AdminDashboard = () => {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
-        {/* Header */}
+        {/* Header — logo only, no link */}
         <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between gap-2 min-h-[60px]">
-          <Link
-            to="/"
+          <div
             className="flex items-center min-w-0 flex-1"
             title={siteSettings.business_name}
           >
             <SidebarLogo />
-          </Link>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-gray-400 hover:text-gray-700 transition-colors shrink-0"
@@ -256,12 +254,9 @@ const AdminDashboard = () => {
                         {tab.label}
                       </p>
                       <p className="text-gray-400 text-xs leading-snug">
-                        {tab.id === "products" &&
-                          "Add, edit or remove products"}
-                        {tab.id === "categories" &&
-                          "Manage product categories"}
-                        {tab.id === "settings" &&
-                          "Edit site settings & branding"}
+                        {tab.id === "products" && "Add, edit or remove products"}
+                        {tab.id === "categories" && "Manage product categories"}
+                        {tab.id === "settings" && "Edit site settings & branding"}
                       </p>
                     </button>
                   ))}
