@@ -150,9 +150,7 @@ const FAQ = () => {
       {/* Hero */}
       <div
         className="pt-24 pb-16 px-4 sm:px-6 lg:px-10 text-center"
-        style={{
-          background: `linear-gradient(135deg, var(--brand-1), var(--brand-2))`,
-        }}
+        style={{ background: "var(--brand-1)" }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}

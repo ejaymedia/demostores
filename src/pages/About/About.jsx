@@ -91,9 +91,7 @@ const About = () => {
       {/* Hero */}
       <div
         className="pt-24 pb-20 px-4 sm:px-6 lg:px-10 text-center relative overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, var(--brand-1), var(--brand-2))`,
-        }}
+        style={{ background: "var(--brand-1)" }}
       >
         <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white/5 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
@@ -194,9 +192,7 @@ const About = () => {
           >
             <div
               className="rounded-3xl p-10 text-center relative overflow-hidden"
-              style={{
-                background: `linear-gradient(135deg, var(--brand-1), var(--brand-2))`,
-              }}
+              style={{ background: "var(--brand-1)" }}
             >
               <div
                 className="absolute inset-0 opacity-10"

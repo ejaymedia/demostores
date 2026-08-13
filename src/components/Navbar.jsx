@@ -276,9 +276,9 @@ const Navbar = () => {
               <button
                 onClick={() => setMenuOpen((prev) => !prev)}
                 className="text-gray-600 hover:text-gray-900 transition-colors p-1"
-                aria-label="Toggle menu"
+                aria-label="Open menu"
               >
-                {menuOpen ? <X size={22} /> : <Menu size={22} />}
+                <Menu size={22} />
               </button>
             </div>
           </div>
@@ -295,18 +295,18 @@ const Navbar = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="fixed inset-0 z-40 md:hidden"
-              style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+              className="fixed inset-0 z-50 md:hidden"
+              style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
               onClick={() => setMenuOpen(false)}
             />
 
-            {/* Drawer panel — slides in from right */}
+            {/* Drawer panel — slides in from left */}
             <motion.div
-              initial={{ x: "100%" }}
+              initial={{ x: "-100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.3, ease: "easeInOut" }}
-              className="fixed top-0 right-0 bottom-0 z-50 md:hidden flex flex-col bg-white shadow-2xl"
+              className="fixed top-0 left-0 bottom-0 z-50 md:hidden flex flex-col bg-white shadow-2xl"
               style={{ width: "78vw", maxWidth: "320px" }}
             >
               {/* Drawer header */}

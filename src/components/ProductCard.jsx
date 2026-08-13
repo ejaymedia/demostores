@@ -70,7 +70,7 @@ const ProductCard = ({ product, index = 0 }) => {
         )}
       </div>
 
-      {/* Body — flex-1 so all cards stretch to same height */}
+      {/* Body — flex col, full height so all cards align */}
       <div className="p-3.5 sm:p-4 flex flex-col flex-1">
 
         {/* Tag */}
@@ -82,18 +82,18 @@ const ProductCard = ({ product, index = 0 }) => {
           {product.gender.charAt(0).toUpperCase() + product.gender.slice(1)}
         </p>
 
-        {/* Name */}
+        {/* Name — fixed min height for 2 lines */}
         <h3 className="text-gray-900 text-sm font-semibold leading-snug line-clamp-2 mb-1 min-h-[2.5rem]">
           {product.name}
         </h3>
 
-        {/* Description */}
+        {/* Description — grows to fill space */}
         <p className="text-gray-400 text-xs leading-relaxed line-clamp-2 mb-3 flex-1">
           {product.description}
         </p>
 
-        {/* Price — always at the bottom */}
-        <div className="mb-3 min-h-[3rem] flex flex-col justify-end">
+        {/* Price block — fixed min height so sale/non-sale cards align */}
+        <div className="min-h-[4rem] flex flex-col justify-end mb-3">
           {hasDiscount ? (
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2 flex-wrap">

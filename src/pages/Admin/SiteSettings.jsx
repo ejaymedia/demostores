@@ -53,25 +53,16 @@ const SiteSettings = () => {
 
   const handleUpload = async (file, pathPrefix, field, key) => {
     if (!file) return;
-
-    // Store old URL before uploading new one
     const oldUrl = form[field];
-
     setUploading((prev) => ({ ...prev, [key]: true }));
     setError("");
-
     try {
       const ext = file.name.split(".").pop();
       const path = `${pathPrefix}/${Date.now()}.${ext}`;
       const url = await uploadFile(BUCKET, path, file);
-
       if (url) {
         setForm((prev) => ({ ...prev, [field]: url }));
-
-        // Auto-delete old image from storage if it existed
-        if (oldUrl) {
-          await deleteStorageFile(BUCKET, oldUrl);
-        }
+        if (oldUrl) await deleteStorageFile(BUCKET, oldUrl);
       } else {
         setError("Upload failed. Please try again.");
       }
@@ -79,16 +70,16 @@ const SiteSettings = () => {
       setError(`Upload error: ${err.message}`);
     } finally {
       setUploading((prev) => ({ ...prev, [key]: false }));
+      // Reset file input
+      if (refs[key]?.current) refs[key].current.value = "";
     }
   };
 
   const handleDeleteImage = async (field, key) => {
     const url = form[field];
     if (!url) return;
-
     setDeleting((prev) => ({ ...prev, [key]: true }));
     setError("");
-
     try {
       await deleteStorageFile(BUCKET, url);
       setForm((prev) => ({ ...prev, [field]: "" }));
@@ -108,11 +99,9 @@ const SiteSettings = () => {
       setError("Site title is required.");
       return;
     }
-
     setSaving(true);
     setError("");
     setSuccess(false);
-
     try {
       const saved = await updateSiteSettings(form);
       if (saved) {
@@ -136,8 +125,8 @@ const SiteSettings = () => {
   const labelClass =
     "text-gray-500 text-xs font-bold uppercase tracking-widest block mb-2";
 
-  // ── Reusable image upload + delete field ──────────────
-  const ImageUploadField = ({
+  // ── Reusable image upload field ───────────────────────
+  const ImageField = ({
     label,
     fieldKey,
     field,
@@ -148,9 +137,9 @@ const SiteSettings = () => {
     previewContain = true,
   }) => {
     const hasImage = Boolean(form[field]);
-    const isUploading = uploading[fieldKey];
-    const isDeleting = deleting[fieldKey];
-    const isBusy = isUploading || isDeleting;
+    const isUp = uploading[fieldKey];
+    const isDel = deleting[fieldKey];
+    const isBusy = isUp || isDel;
 
     return (
       <div className="flex items-start gap-4">
@@ -167,26 +156,21 @@ const SiteSettings = () => {
               className={`w-full h-full ${
                 previewContain ? "object-contain p-1" : "object-cover"
               }`}
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
+              onError={(e) => { e.target.style.display = "none"; }}
             />
           ) : (
-            <span className="text-gray-300 text-xs text-center px-2">
+            <span className="text-gray-300 text-xs text-center px-2 leading-snug">
               No image
             </span>
           )}
         </div>
 
-        {/* Info + Buttons */}
+        {/* Controls */}
         <div className="flex-1 min-w-0">
           <p className="text-gray-900 text-sm font-semibold mb-1">{label}</p>
           {note && (
-            <p className="text-gray-400 text-xs mb-2 leading-relaxed">
-              {note}
-            </p>
+            <p className="text-gray-400 text-xs mb-2 leading-relaxed">{note}</p>
           )}
-
           <input
             ref={refs[fieldKey]}
             type="file"
@@ -195,44 +179,37 @@ const SiteSettings = () => {
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleUpload(file, pathPrefix, field, fieldKey);
-              // Reset input so same file can be re-uploaded if needed
-              e.target.value = "";
             }}
           />
-
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Upload button */}
             <button
               onClick={() => refs[fieldKey].current?.click()}
               disabled={isBusy}
-              className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-2 rounded-full transition-all duration-200 disabled:opacity-50"
             >
-              {isUploading ? (
-                <RefreshCw size={12} className="animate-spin" />
+              {isUp ? (
+                <RefreshCw size={11} className="animate-spin" />
               ) : (
-                <Upload size={12} />
+                <Upload size={11} />
               )}
-              {isUploading ? "Uploading..." : hasImage ? "Replace" : "Upload"}
+              {isUp ? "Uploading..." : hasImage ? "Replace" : "Upload"}
             </button>
-
-            {/* Delete button — only shown when image exists */}
             {hasImage && (
               <button
                 onClick={() => handleDeleteImage(field, fieldKey)}
                 disabled={isBusy}
-                className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-semibold px-3 py-2 rounded-full transition-all duration-200 disabled:opacity-50"
               >
-                {isDeleting ? (
-                  <RefreshCw size={12} className="animate-spin" />
+                {isDel ? (
+                  <RefreshCw size={11} className="animate-spin" />
                 ) : (
-                  <Trash2 size={12} />
+                  <Trash2 size={11} />
                 )}
-                {isDeleting ? "Deleting..." : "Remove"}
+                {isDel ? "Removing..." : "Remove"}
               </button>
             )}
           </div>
-
-          {hasImage && !isUploading && (
+          {hasImage && !isUp && (
             <p className="text-green-600 text-xs mt-1.5 font-medium">
               ✓ Image set
             </p>
@@ -241,6 +218,37 @@ const SiteSettings = () => {
       </div>
     );
   };
+
+  // ── Colour picker field ───────────────────────────────
+  const ColourField = ({ label, field, defaultValue, note, preview }) => (
+    <div>
+      <label className={labelClass}>{label}</label>
+      {note && (
+        <p className="text-gray-400 text-xs mb-3 leading-relaxed">{note}</p>
+      )}
+      <div className="flex items-center gap-3 mb-2">
+        <input
+          type="color"
+          value={form[field] || defaultValue}
+          onChange={(e) => handleChange(field, e.target.value)}
+          className="w-12 h-12 rounded-xl border border-gray-200 cursor-pointer bg-transparent p-1 shrink-0"
+        />
+        <input
+          type="text"
+          value={form[field] || defaultValue}
+          onChange={(e) => handleChange(field, e.target.value)}
+          placeholder={defaultValue}
+          className={`${inputClass} flex-1`}
+        />
+      </div>
+      {preview && (
+        <div
+          className="h-8 rounded-xl"
+          style={{ background: form[field] || defaultValue }}
+        />
+      )}
+    </div>
+  );
 
   return (
     <div className="max-w-2xl">
@@ -266,9 +274,7 @@ const SiteSettings = () => {
               <input
                 type="text"
                 value={form.business_name || ""}
-                onChange={(e) =>
-                  handleChange("business_name", e.target.value)
-                }
+                onChange={(e) => handleChange("business_name", e.target.value)}
                 placeholder="e.g. Bovic Collections"
                 className={inputClass}
               />
@@ -288,9 +294,7 @@ const SiteSettings = () => {
               <input
                 type="text"
                 value={form.site_title || ""}
-                onChange={(e) =>
-                  handleChange("site_title", e.target.value)
-                }
+                onChange={(e) => handleChange("site_title", e.target.value)}
                 placeholder="e.g. Bovic Collections — Fashion & Lifestyle"
                 className={inputClass}
               />
@@ -323,9 +327,7 @@ const SiteSettings = () => {
                 <input
                   type="text"
                   value={form.whatsapp || ""}
-                  onChange={(e) =>
-                    handleChange("whatsapp", e.target.value)
-                  }
+                  onChange={(e) => handleChange("whatsapp", e.target.value)}
                   placeholder="2348012345678"
                   className={inputClass}
                 />
@@ -357,65 +359,60 @@ const SiteSettings = () => {
           </div>
         </div>
 
-        {/* ── BRAND COLOURS ──────────────────────────── */}
+        {/* ── COLOURS ────────────────────────────────── */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6">
           <h3 className="text-gray-900 font-bold text-xs uppercase tracking-widest mb-2">
             Brand Colours
           </h3>
-          <p className="text-gray-400 text-xs mb-5 leading-relaxed">
-            These colours update the entire website — buttons, accents,
-            gradients and highlights.
+          <p className="text-gray-400 text-xs mb-6 leading-relaxed">
+            The primary colour automatically generates shades used across
+            buttons, accents, badges, and gradients throughout the site.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {[
-              {
-                key: "brand_color_1",
-                label: "Primary Colour",
-                default: "#1d4ed8",
-              },
-              {
-                key: "brand_color_2",
-                label: "Secondary Colour",
-                default: "#6366f1",
-              },
-            ].map((color) => (
-              <div key={color.key}>
-                <label className={labelClass}>{color.label}</label>
-                <div className="flex items-center gap-3 mb-2">
-                  <input
-                    type="color"
-                    value={form[color.key] || color.default}
-                    onChange={(e) =>
-                      handleChange(color.key, e.target.value)
-                    }
-                    className="w-12 h-12 rounded-xl border border-gray-200 cursor-pointer bg-transparent p-1 shrink-0"
-                  />
-                  <input
-                    type="text"
-                    value={form[color.key] || color.default}
-                    onChange={(e) =>
-                      handleChange(color.key, e.target.value)
-                    }
-                    placeholder={color.default}
-                    className={`${inputClass} flex-1`}
-                  />
-                </div>
-                <div
-                  className="h-8 rounded-xl"
-                  style={{ background: form[color.key] || color.default }}
-                />
+
+          <div className="flex flex-col gap-6">
+            {/* Primary colour */}
+            <ColourField
+              label="Primary Colour"
+              field="brand_color_1"
+              defaultValue="#1d4ed8"
+              preview
+              note="Used for buttons, links, accents, and badges. Shades are generated automatically — no need to pick multiple."
+            />
+
+            {/* Shade preview grid */}
+            <div>
+              <p className="text-gray-400 text-xs font-medium mb-2">
+                Auto-generated shades
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: "Light", key: "--brand-shade-light" },
+                  { label: "Medium", key: "--brand-shade-medium" },
+                  { label: "Dark", key: "--brand-shade-dark" },
+                  { label: "Darker", key: "--brand-shade-darker" },
+                ].map((shade) => (
+                  <div key={shade.key} className="text-center">
+                    <div
+                      className="h-8 rounded-lg mb-1"
+                      style={{
+                        background: `var(${shade.key})`,
+                      }}
+                    />
+                    <p className="text-gray-400 text-xs">{shade.label}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="mt-5">
-            <p className="text-gray-400 text-xs mb-2">Gradient preview</p>
-            <div
-              className="h-10 rounded-xl"
-              style={{
-                background: `linear-gradient(90deg, ${
-                  form.brand_color_1 || "#1d4ed8"
-                }, ${form.brand_color_2 || "#6366f1"})`,
-              }}
+            </div>
+
+            <div className="border-t border-gray-100" />
+
+            {/* Footer colour */}
+            <ColourField
+              label="Footer Background Colour"
+              field="footer_color"
+              defaultValue="#111827"
+              preview
+              note="Controls the background colour of the site footer. Dark colours work best for contrast."
             />
           </div>
         </div>
@@ -426,7 +423,7 @@ const SiteSettings = () => {
             Logo & Favicon
           </h3>
           <div className="flex flex-col gap-6">
-            <ImageUploadField
+            <ImageField
               label="Logo"
               fieldKey="logo"
               field="logo_url"
@@ -434,7 +431,7 @@ const SiteSettings = () => {
               note="Displayed in the navbar, footer, and admin panel. Supports any shape — square, circular, or wide rectangular."
             />
             <div className="border-t border-gray-100" />
-            <ImageUploadField
+            <ImageField
               label="Favicon"
               fieldKey="favicon"
               field="favicon_url"
@@ -451,7 +448,7 @@ const SiteSettings = () => {
           <h3 className="text-gray-900 font-bold text-xs uppercase tracking-widest mb-5">
             Hero Background Image
           </h3>
-          <ImageUploadField
+          <ImageField
             label="Hero Image"
             fieldKey="hero"
             field="hero_url"
@@ -488,7 +485,7 @@ const SiteSettings = () => {
             homepage. Portrait-style images work best.
           </p>
           <div className="flex flex-col gap-6">
-            <ImageUploadField
+            <ImageField
               label="Men's Image"
               fieldKey="men"
               field="men_image_url"
@@ -497,7 +494,7 @@ const SiteSettings = () => {
               note="Shown on the Men gender card"
             />
             <div className="border-t border-gray-100" />
-            <ImageUploadField
+            <ImageField
               label="Women's Image"
               fieldKey="women"
               field="women_image_url"
@@ -506,7 +503,7 @@ const SiteSettings = () => {
               note="Shown on the Women gender card"
             />
             <div className="border-t border-gray-100" />
-            <ImageUploadField
+            <ImageField
               label="Kids' Image"
               fieldKey="kids"
               field="kids_image_url"
@@ -537,7 +534,7 @@ const SiteSettings = () => {
           ) : isAnyDeleting ? (
             <>
               <RefreshCw size={16} className="animate-spin" />
-              Deleting image...
+              Removing image...
             </>
           ) : (
             <>
@@ -552,8 +549,7 @@ const SiteSettings = () => {
           <div className="bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-5 py-4 rounded-2xl flex items-center gap-3">
             <span className="text-lg shrink-0">✅</span>
             <span>
-              Settings saved successfully! Changes are now live across your
-              site.
+              Settings saved successfully! Changes are now live across your site.
             </span>
           </div>
         )}

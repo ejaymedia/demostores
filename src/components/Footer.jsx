@@ -79,7 +79,7 @@ const Footer = () => {
             >
               <FooterLogo />
             </button>
-            <p className="text-white/50 text-sm leading-relaxed mb-5 max-w-xs">
+            <p className="text-white text-sm leading-relaxed mb-5 max-w-xs">
               {siteSettings.tagline}. Delivered across Nigeria.
             </p>
             {/* Socials */}
@@ -231,11 +231,11 @@ const Footer = () => {
       {/* Bottom bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-white/30 text-xs">
+          <p className="text-white text-xs">
             © {currentYear} {siteSettings.business_name}. All rights reserved.
           </p>
-          <p className="text-white/30 text-xs">Fashion · Style · Nigeria</p>
-          <p className="text-white/30 text-xs">
+          <p className="text-white text-xs">Fashion · Style · Nigeria</p>
+          <p className="text-white text-xs">
             Built with ❤️ by{" "}
             <a
               href="https://elijah.is-a.dev"
