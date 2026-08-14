@@ -40,7 +40,6 @@ const Footer = () => {
     }
   };
 
-  // Logo — no text beside it
   const FooterLogo = () => {
     if (!siteSettings.logo_url) {
       return (
@@ -70,7 +69,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-10">
 
-          {/* Brand — full width on mobile */}
+          {/* Brand */}
           <div className="col-span-2 sm:col-span-1">
             <button
               onClick={() => goTo("/")}
@@ -79,9 +78,11 @@ const Footer = () => {
             >
               <FooterLogo />
             </button>
-            <p className="text-white text-sm leading-relaxed mb-5 max-w-xs">
-              {siteSettings.tagline}. Delivered across Nigeria.
-            </p>
+            {siteSettings.tagline && (
+              <p className="text-white/50 text-sm leading-relaxed mb-5 max-w-xs">
+                {siteSettings.tagline}. Delivered across Nigeria.
+              </p>
+            )}
             {/* Socials */}
             <div className="flex items-center gap-3">
               <a
@@ -104,16 +105,18 @@ const Footer = () => {
               >
                 <FaFacebookF size={15} />
               </a>
-              <a
-                href={`https://wa.me/${siteSettings.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="WhatsApp"
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all duration-200"
-                style={{ background: "rgba(255,255,255,0.08)" }}
-              >
-                <FaWhatsapp size={15} />
-              </a>
+              {siteSettings.whatsapp && (
+                <a
+                  href={`https://wa.me/${siteSettings.whatsapp}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all duration-200"
+                  style={{ background: "rgba(255,255,255,0.08)" }}
+                >
+                  <FaWhatsapp size={15} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -127,7 +130,7 @@ const Footer = () => {
                 { label: "Men", action: () => goTo("/shop/men") },
                 { label: "Women", action: () => goTo("/shop/women") },
                 { label: "Kids", action: () => goTo("/shop/kids") },
-                { label: "New Arrivals", action: () => goTo("/shop/men") },
+                { label: "Hot Deals", action: () => goTo("/shop/men") },
                 { label: "Sale", action: () => goTo("/shop/men") },
               ].map((link) => (
                 <li key={link.label}>
@@ -151,7 +154,10 @@ const Footer = () => {
               {[
                 { label: "About Us", action: () => goTo("/about") },
                 { label: "FAQ", action: () => goTo("/faq") },
-                { label: "Services", action: () => scrollToSection("services") },
+                {
+                  label: "Services",
+                  action: () => scrollToSection("services"),
+                },
                 {
                   label: "WhatsApp Order",
                   action: () =>
@@ -173,7 +179,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Contact — only renders fields that exist in Supabase */}
           <div>
             <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-4">
               Contact
@@ -222,19 +228,22 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Divider — uses brand primary colour */}
+      {/* Divider */}
       <div
-        className="h-px w-full opacity-20"
-        style={{ background: "var(--brand-1)" }}
+        className="h-px w-full"
+        style={{ background: "var(--brand-shade-dark)", opacity: 0.3 }}
       />
 
       {/* Bottom bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-white text-xs">
-            © {currentYear} {siteSettings.business_name}. All rights reserved.
+            © {currentYear}{" "}
+            {siteSettings.business_name}. All rights reserved.
           </p>
-          <p className="text-white text-xs">Fashion · Style · Nigeria</p>
+          <p className="text-white text-xs">
+            Fashion · Style · Nigeria
+          </p>
           <p className="text-white text-xs">
             Built with ❤️ by{" "}
             <a
