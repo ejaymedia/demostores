@@ -10,21 +10,30 @@ const GenderSection = () => {
       gender: "men",
       label: "Men",
       description: "Clothing · Shoes · Bags · Accessories",
-      image: siteSettings.men_image_url || `${import.meta.env.BASE_URL}genders/men.jpg`,
+      image: siteSettings.men_image_url,
     },
     {
       gender: "women",
       label: "Women",
       description: "Clothing · Shoes · Bags · Accessories",
-      image: siteSettings.women_image_url || `${import.meta.env.BASE_URL}genders/women.jpg`,
+      image: siteSettings.women_image_url,
     },
     {
       gender: "kids",
       label: "Kids",
       description: "Clothing · Shoes · Accessories",
-      image: siteSettings.kids_image_url || `${import.meta.env.BASE_URL}genders/kids.jpg`,
+      image: siteSettings.kids_image_url,
     },
   ];
+
+  // Don't render section if no images are set yet
+  if (
+    !siteSettings.men_image_url &&
+    !siteSettings.women_image_url &&
+    !siteSettings.kids_image_url
+  ) {
+    return null;
+  }
 
   return (
     <div className="bg-white py-20 px-4 sm:px-6 lg:px-10 border-t border-gray-100">
@@ -44,16 +53,18 @@ const GenderSection = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-          {genders.map((item, index) => (
-            <GenderCard
-              key={item.gender}
-              gender={item.gender}
-              label={item.label}
-              description={item.description}
-              image={item.image}
-              index={index}
-            />
-          ))}
+          {genders
+            .filter((item) => item.image)
+            .map((item, index) => (
+              <GenderCard
+                key={item.gender}
+                gender={item.gender}
+                label={item.label}
+                description={item.description}
+                image={item.image}
+                index={index}
+              />
+            ))}
         </div>
       </div>
     </div>

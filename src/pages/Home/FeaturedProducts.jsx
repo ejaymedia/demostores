@@ -152,7 +152,7 @@ const FeaturedProducts = () => {
             <div
               ref={rowRef}
               onScroll={handleScroll}
-              className="flex gap-4 overflow-x-auto pb-2"
+              className="flex items-stretch gap-4 overflow-x-auto pb-2"
               style={{
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
@@ -162,15 +162,16 @@ const FeaturedProducts = () => {
               {products.map((product, index) => (
                 <div
                   key={product.id}
-                  className="shrink-0"
+                  className="shrink-0 flex"
                   style={{
-                    // On mobile: 2 per row. On sm+: 4 per row
                     width: "calc(50% - 8px)",
                     minWidth: "160px",
                     maxWidth: "280px",
                   }}
                 >
-                  <ProductCard product={product} index={index} />
+                  <div className="flex flex-col w-full">
+                    <ProductCard product={product} index={index} />
+                  </div>
                 </div>
               ))}
             </div>

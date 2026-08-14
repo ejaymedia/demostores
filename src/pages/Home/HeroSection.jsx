@@ -34,9 +34,7 @@ const HeroSection = () => {
         ) : (
           <div
             className="w-full h-full"
-            style={{
-              background: `linear-gradient(135deg, var(--brand-shade-darker), var(--brand-1))`,
-            }}
+            style={{ background: "var(--brand-1)" }}
           />
         )}
         {/* Dark overlay */}
@@ -58,7 +56,7 @@ const HeroSection = () => {
               className="w-1.5 h-1.5 rounded-full animate-pulse"
               style={{ background: "var(--brand-1)" }}
             />
-            New Season Arrivals
+            {siteSettings.tagline}
           </motion.div>
 
           {/* Title */}
