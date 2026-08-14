@@ -344,7 +344,7 @@ const ProductsManager = () => {
                           </span>
                         ) : (
                           <span
-                            className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                            className={`absolute -ml-3.75 top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
                               product.in_stock
                                 ? "translate-x-4"
                                 : "translate-x-0.5"
