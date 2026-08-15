@@ -62,24 +62,15 @@ const About = () => {
   const { siteSettings } = useSite();
   const navigate = useNavigate();
 
-  // Logo component — responsive, no text beside it
   const AboutLogo = () => {
-    if (!siteSettings.logo_url) {
-      return (
-        <span className="text-white text-2xl font-black">
-          {siteSettings.business_name}
-        </span>
-      );
-    }
+    if (!siteSettings.logo_url) return null;
     return (
       <img
         src={siteSettings.logo_url}
         alt={siteSettings.business_name}
         className="h-16 w-auto object-contain mx-auto"
         style={{ maxWidth: "200px", maxHeight: "64px" }}
-        onError={(e) => {
-          e.target.style.display = "none";
-        }}
+        onError={(e) => { e.target.style.display = "none"; }}
       />
     );
   };
@@ -111,9 +102,11 @@ const About = () => {
               {siteSettings.business_name}
             </span>
           </h1>
-          <p className="text-white/70 text-base max-w-xl mx-auto leading-relaxed">
-            {siteSettings.tagline}
-          </p>
+          {siteSettings.tagline && (
+            <p className="text-white/70 text-base max-w-xl mx-auto leading-relaxed">
+              {siteSettings.tagline}
+            </p>
+          )}
         </motion.div>
       </div>
 
@@ -143,7 +136,7 @@ const About = () => {
           ))}
         </div>
 
-        {/* Story section */}
+        {/* Story */}
         <div className="py-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center border-b border-gray-100">
           <motion.div
             initial={{ opacity: 0, x: -24 }}
@@ -209,9 +202,11 @@ const About = () => {
                 <h3 className="text-white text-xl font-black mb-2">
                   {siteSettings.business_name}
                 </h3>
-                <p className="text-white/70 text-sm leading-relaxed max-w-xs mx-auto">
-                  {siteSettings.tagline}
-                </p>
+                {siteSettings.tagline && (
+                  <p className="text-white/70 text-sm leading-relaxed max-w-xs mx-auto">
+                    {siteSettings.tagline}
+                  </p>
+                )}
                 <div className="flex items-center justify-center gap-3 mt-6">
                   <a
                     href="https://instagram.com"
@@ -231,15 +226,17 @@ const About = () => {
                   >
                     <FaFacebookF size={15} />
                   </a>
-                  <a
-                    href={`https://wa.me/${siteSettings.whatsapp}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200"
-                    aria-label="WhatsApp"
-                  >
-                    <FaWhatsapp size={15} />
-                  </a>
+                  {siteSettings.whatsapp && (
+                    <a
+                      href={`https://wa.me/${siteSettings.whatsapp}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all duration-200"
+                      aria-label="WhatsApp"
+                    >
+                      <FaWhatsapp size={15} />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -324,18 +321,20 @@ const About = () => {
               >
                 Browse Collections
               </button>
-              <a
-                href={`https://wa.me/${siteSettings.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-4 rounded-full transition-all duration-200 hover:-translate-y-0.5 text-sm"
-              >
-                <FaWhatsapp size={16} />
-                Chat on WhatsApp
-              </a>
+              {siteSettings.whatsapp && (
+                <a
+                  href={`https://wa.me/${siteSettings.whatsapp}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-4 rounded-full transition-all duration-200 hover:-translate-y-0.5 text-sm"
+                >
+                  <FaWhatsapp size={16} />
+                  Chat on WhatsApp
+                </a>
+              )}
             </div>
 
-            {/* Contact details */}
+            {/* Contact details — only show if set in Supabase */}
             <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm">
               {siteSettings.phone && (
                 <a

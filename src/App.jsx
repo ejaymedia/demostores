@@ -15,25 +15,42 @@ const LoadingScreen = () => {
       transition={{ duration: 0.6, ease: "easeInOut" }}
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white"
     >
-      {/* Static logo from public folder */}
-      <motion.img
-        src={`${import.meta.env.BASE_URL}logo/logo.png`}
-        alt="Loading"
-        className="w-16 h-16 object-contain mb-6"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
-      />
+      {/* Circular container with spinning border */}
+      <div className="relative flex items-center justify-center">
 
-      {/* Animated loading bar */}
-      <div className="w-32 h-1 bg-gray-100 rounded-full overflow-hidden">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ background: "var(--brand-1)" }}
-          initial={{ width: "0%" }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 1.2, ease: "easeInOut" }}
-        />
+        {/* Spinning ring — pure CSS, no brand colour dependency */}
+        <svg
+          className="absolute animate-spin"
+          width="96"
+          height="96"
+          viewBox="0 0 96 96"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ animationDuration: "1.2s" }}
+        >
+          <circle
+            cx="48"
+            cy="48"
+            r="44"
+            stroke="#e5e7eb"
+            strokeWidth="4"
+          />
+          <path
+            d="M48 4 A44 44 0 0 1 92 48"
+            stroke="#111827"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+        </svg>
+
+        {/* Logo inside circle */}
+        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center">
+          <img
+            src={`${import.meta.env.BASE_URL}logo/logo.png`}
+            alt="Loading"
+            className="w-14 h-14 object-contain"
+          />
+        </div>
       </div>
     </motion.div>
   );

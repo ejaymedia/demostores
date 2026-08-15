@@ -149,13 +149,18 @@ const FAQ = () => {
 
       {/* Hero */}
       <div
-        className="pt-24 pb-16 px-4 sm:px-6 lg:px-10 text-center"
+        className="pt-24 pb-16 px-4 sm:px-6 lg:px-10 text-center relative overflow-hidden"
         style={{ background: "var(--brand-1)" }}
       >
+        {/* Decorative circles */}
+        <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white/5 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
+          className="relative z-10"
         >
           <p className="text-white/70 text-xs font-bold uppercase tracking-widest mb-3">
             Help Center
@@ -165,11 +170,13 @@ const FAQ = () => {
             <br />
             Questions
           </h1>
-          <p className="text-white/70 text-base max-w-md mx-auto leading-relaxed">
-            Everything you need to know about shopping with{" "}
-            {siteSettings.business_name}. Can't find the answer you're
-            looking for? Reach us on WhatsApp.
-          </p>
+          {siteSettings.business_name && (
+            <p className="text-white/70 text-base max-w-md mx-auto leading-relaxed">
+              Everything you need to know about shopping with{" "}
+              {siteSettings.business_name}. Can't find the answer? Reach us
+              on WhatsApp.
+            </p>
+          )}
         </motion.div>
       </div>
 
@@ -226,32 +233,36 @@ const FAQ = () => {
         </div>
 
         {/* Still have questions CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="mt-16 text-center rounded-3xl p-10"
-          style={{
-            background: `linear-gradient(135deg, var(--brand-1), var(--brand-2))`,
-          }}
-        >
-          <p className="text-white text-xl font-black mb-2">
-            Still have questions?
-          </p>
-          <p className="text-white/70 text-sm mb-6">
-            Our team is available on WhatsApp to help you with anything.
-          </p>
-          <a
-            href={`https://wa.me/${siteSettings.whatsapp}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 bg-white text-sm font-bold px-6 py-3 rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-            style={{ color: "var(--brand-1)" }}
+        {siteSettings.whatsapp && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="mt-16 text-center rounded-3xl p-10 relative overflow-hidden"
+            style={{ background: "var(--brand-1)" }}
           >
-            💬 Chat with us on WhatsApp
-          </a>
-        </motion.div>
+            <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-white/5 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+            <div className="relative z-10">
+              <p className="text-white text-xl font-black mb-2">
+                Still have questions?
+              </p>
+              <p className="text-white/70 text-sm mb-6">
+                Our team is available on WhatsApp to help you with anything.
+              </p>
+              <a
+                href={`https://wa.me/${siteSettings.whatsapp}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 bg-white text-sm font-bold px-6 py-3 rounded-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ color: "var(--brand-1)" }}
+              >
+                💬 Chat with us on WhatsApp
+              </a>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       <Footer />

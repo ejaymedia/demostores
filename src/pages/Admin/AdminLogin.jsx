@@ -45,25 +45,14 @@ const AdminLogin = () => {
 
   // Logo — responsive, no text beside it
   const LoginLogo = () => {
-    if (!siteSettings.logo_url) {
-      return (
-        <span
-          className="font-black text-2xl"
-          style={{ color: "var(--brand-1)" }}
-        >
-          {siteSettings.business_name}
-        </span>
-      );
-    }
+    if (!siteSettings.logo_url) return null;
     return (
       <img
         src={siteSettings.logo_url}
         alt={siteSettings.business_name}
         className="h-14 w-auto object-contain mx-auto"
         style={{ maxWidth: "180px", maxHeight: "56px" }}
-        onError={(e) => {
-          e.target.style.display = "none";
-        }}
+        onError={(e) => { e.target.style.display = "none"; }}
       />
     );
   };
@@ -87,7 +76,9 @@ const AdminLogin = () => {
             <LoginLogo />
           </div>
           <p className="text-gray-400 text-sm">
-            Admin Portal — Restricted Access
+            {siteSettings.business_name
+              ? `${siteSettings.business_name} — Admin`
+              : "Admin Portal"}
           </p>
         </div>
 

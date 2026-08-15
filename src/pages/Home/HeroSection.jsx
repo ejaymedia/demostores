@@ -110,7 +110,7 @@ const HeroSection = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1.2 }}
         onClick={scrollToNext}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 group cursor-pointer"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 group cursor-pointer"
         aria-label="Scroll to next section"
       >
         <span className="text-white/50 text-xs uppercase tracking-widest font-medium group-hover:text-white/80 transition-colors duration-200">
@@ -125,9 +125,6 @@ const HeroSection = () => {
           <ChevronDown size={16} className="text-white/60 group-hover:text-white transition-colors duration-200" />
         </motion.div>
       </motion.button>
-
-      {/* Bottom gradient fade into next section */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent z-10 pointer-events-none" />
     </div>
   );
 };

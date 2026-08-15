@@ -79,16 +79,7 @@ const AdminDashboard = () => {
 
   // Logo — no link, just display
   const SidebarLogo = () => {
-    if (!siteSettings.logo_url) {
-      return (
-        <span
-          className="text-xs font-black truncate"
-          style={{ color: "var(--brand-1)" }}
-        >
-          {siteSettings.business_name}
-        </span>
-      );
-    }
+    if (!siteSettings.logo_url) return null;
     return (
       <img
         src={siteSettings.logo_url}
